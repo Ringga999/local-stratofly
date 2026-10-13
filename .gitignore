@@ -5,3 +5,5 @@ __pycache__/
 .pytest_cache/
 reports/
 !.gitkeep
+memory.sqlite3
+github_token.json
