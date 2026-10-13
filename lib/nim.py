@@ -5,11 +5,9 @@ _client = None
 _works = None
 
 FALLBACK_MODELS = [
-    "nvidia/llama-3.1-nemotron-70b-instruct",
-    "meta/llama-3.1-70b-instruct",
+    "nvidia/nemotron-3.5-lightning-30b-a3b",
+    "meta/llama-3.1-8b-instruct",
     "qwen/qwen2.5-coder-32b-instruct",
-    "deepseek-ai/deepseek-v3",
-    "mistralai/mixtral-8x22b-instruct-v0.1",
 ]
 
 def client() -> OpenAI:
@@ -27,7 +25,6 @@ def _remember(m: str):
     try:
         from lib import envstore
         envstore.set_value("SCOUT_MODEL", m)
-        config.SCOUT_MODEL = m
     except Exception:
         pass
 

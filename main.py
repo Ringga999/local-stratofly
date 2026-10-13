@@ -10,6 +10,7 @@ def _reload_env():
     load_dotenv(override=True)
     config.NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
     config.REPOS = [r.strip() for r in os.getenv("REPOS", "").split(",") if r.strip()]
+    config.SCOUT_MODEL = os.getenv("SCOUT_MODEL", "meta/llama-3.1-70b-instruct")
 
 def preflight() -> bool:
     from config import NVIDIA_API_KEY, REPOS
@@ -32,10 +33,10 @@ def _pick_model():
     from lib import nim, envstore
     import config as cfg
     cur = cfg.SCOUT_MODEL
-    print(f"🧠 Model aktif: {cur}")
+    print(f" Model aktif: {cur}")
     print("   Mengambil katalog hidup dari NVIDIA…")
     ids = sorted(nim.list_models())
-    pref = [i for i in ids if any(k in i for k in ("instruct", "chat", "r1", "v3"))]
+    pref = [i for i in ids if any(k in i for k in ("instruct", "chat", "r1", "v3", "70b", "32b"))]
     pref = [i for i in pref if i != cur][:14]
     print("   [0] pertahankan model aktif")
     for n, i in enumerate(pref, 1):
