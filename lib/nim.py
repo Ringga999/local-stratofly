@@ -27,11 +27,12 @@ def _remember(m: str):
     try:
         from lib import envstore
         envstore.set_value("SCOUT_MODEL", m)
-        config.SCOUNT_MODEL = m
+        config.SCOUT_MODEL = m
     except Exception:
         pass
 
 def ask(model: str, system: str, user: str, temperature: float = 0.3) -> str:
+    global _works
     chain = []
     for m in ([_works, model] + FALLBACK_MODELS):
         if m and m not in chain:
