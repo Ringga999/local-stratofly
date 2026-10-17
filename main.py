@@ -90,6 +90,10 @@ if __name__ == "__main__":
     if cmd == "all":
         _all()
         raise SystemExit(0)
+    if cmd == "telegram":
+        from lib import telegram_gateway
+        telegram_gateway.run()
+        raise SystemExit(0)
     if _needs_onboard():
         print("🌱 Pertama kali hidup — saya akan meminta akses yang saya butuhkan…")
         from lib import onboard
