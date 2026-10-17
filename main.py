@@ -40,9 +40,60 @@ def _show_brains():
         for ln in lines:
             print(ln)
     print()
-    print("   To add a provider later: put its key in .env")
-    print("   (GROQ_API_KEY, OPENROUTER_API_KEY, DEEPSEEK_API_KEY, MISTRAL_API_KEY)")
-    print("   then restart. The hub picks it up automatically.")
+    print("   Change a brain with: python main.py model")
+    print("   Add a provider later: put its key in .env and restart.")
+
+def _pick_model():
+    from lib import provider_hub
+    import config as cfg
+    brains = list(cfg.BRAINS.keys())
+    print("🧠 Which brain do you want to rewire?")
+    for n, b in enumerate(brains, 1):
+        first = cfg.BRAINS[b][0] if cfg.BRAINS[b] else ("-", "-")
+        print(f"   [{n}] {b}  (now: {first[0]}/{first[1]})")
+    choice = input("   Pick number: ").strip()
+    try:
+        brain = brains[int(choice) - 1]
+    except Exception:
+        print("   Invalid choice."); return
+    provs = provider_hub.available_providers()
+    if not provs:
+        print("   No provider keys found."); return
+    print("   Which provider?")
+    for n, p in enumerate(provs, 1):
+        print(f"   [{n}] {p}")
+    choice = input("   Pick number: ").strip()
+    try:
+        prov = provs[int(choice) - 1]
+    except Exception:
+        print("   Invalid choice."); return
+    print(f"   Fetching live model catalog from {prov}…")
+    ids = provider_hub.list_models(prov)
+    if not ids:
+        custom = input("   Catalog unavailable. Type model id manually: ").strip()
+        if custom:
+            provider_hub.set_brain_first(brain, prov, custom)
+            print(f"✅ {brain} now starts with {prov}/{custom}")
+        return
+    pref = [i for i in ids if any(k in i for k in
+            ("instruct", "chat", "pro", "max", "large", "r1", "v3", "nemotron"))]
+    pref = (pref or ids)[:14]
+    print("   [0] type a custom model id instead")
+    for n, i in enumerate(pref, 1):
+        print(f"   [{n}] {i}")
+    choice = input("   Pick number: ").strip()
+    if choice == "0":
+        custom = input("   Type model id: ").strip()
+        if custom:
+            provider_hub.set_brain_first(brain, prov, custom)
+            print(f"✅ {brain} now starts with {prov}/{custom}")
+        return
+    try:
+        model = pref[int(choice) - 1]
+    except Exception:
+        print("   Invalid choice."); return
+    provider_hub.set_brain_first(brain, prov, model)
+    print(f"✅ {brain} now starts with {prov}/{model}  (written to .env by the body itself)")
 
 def _serve():
     from lib import api_server
@@ -69,6 +120,9 @@ if __name__ == "__main__":
         raise SystemExit(0)
     if cmd == "brains":
         _show_brains()
+        raise SystemExit(0)
+    if cmd == "model":
+        _pick_model()
         raise SystemExit(0)
     if cmd == "serve":
         _serve()

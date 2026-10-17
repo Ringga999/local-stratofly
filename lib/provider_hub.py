@@ -15,6 +15,23 @@ def _client(provider: str) -> OpenAI:
 def available_providers():
     return [p for p in config.PROVIDERS if config.provider_key(p)]
 
+def list_models(provider: str):
+    try:
+        return sorted(m.id for m in _client(provider).models.list())
+    except Exception:
+        return []
+
+def set_brain_first(brain: str, provider: str, model: str):
+    from lib import envstore
+    chain = list(config.BRAINS.get(brain, []))
+    pair = (provider, model)
+    if pair in chain:
+        chain.remove(pair)
+    chain.insert(0, pair)
+    spec = ",".join(f"{p}/{m}" for p, m in chain)
+    envstore.set_value("BRAIN_" + brain, spec)
+    config.BRAINS[brain] = chain
+
 def _chain(brain: str):
     chain = list(config.BRAINS.get(brain, config.BRAINS[config.DEFAULT_BRAIN]))
     last = memory.get_kv("brain_last_" + brain)

@@ -19,13 +19,13 @@ def _write_env(d: dict):
 def ensure_nvidia(d: dict) -> dict:
     if d.get("NVIDIA_API_KEY"):
         return d
-    print("\n🧠 OTAK: saya butuh kunci NVIDIA NIM untuk bisa berpikir.")
-    print("   Membuka halaman pembuatan kunci di browser Anda…")
+    print("\n🧠 BRAIN: I need an NVIDIA NIM key to think (temporary default).")
+    print("   Opening the key page in your browser…")
     webbrowser.open("https://build.nvidia.com/settings/api-keys")
     print("   (Login → Generate API Key → copy)")
-    key = input("   Tempel kunci (nvapi-…) di sini, lalu Enter: ").strip()
+    key = input("   Paste the key (nvapi-…) here, then Enter: ").strip()
     if not key:
-        raise SystemExit("❌ Kunci kosong — ulangi: python main.py setup")
+        raise SystemExit("❌ Empty key — run again: python main.py setup")
     d["NVIDIA_API_KEY"] = key
     return d
 
@@ -33,7 +33,7 @@ def ensure_repos(d: dict) -> dict:
     if d.get("REPOS"):
         return d
     default = "Ringga999/zcp2o-protocol,Ringga999/notapeer-app"
-    ans = input(f"\n📚 REPO yang saya rawat [Enter = {default}]: ").strip()
+    ans = input(f"\n📚 REPOS I maintain [Enter = {default}]: ").strip()
     d["REPOS"] = ans or default
     return d
 
@@ -42,6 +42,7 @@ def run():
     d = ensure_nvidia(d)
     d = ensure_repos(d)
     _write_env(d)
-    print("\n🔗 GITHUB: saat ini mode tanpa-token → repo publik terbaca.")
-    print("   Bila nanti butuh repo privat: `gh auth login` — satu klik approve.")
-    print("\n✅ .env saya tulis sendiri. Tubuh saya kini punya organ yang ia minta.")
+    print("\n🔗 GITHUB: tokenless mode for now → public repos readable.")
+    print("   For private repos later: `gh auth login` — one approve click.")
+    print("   Optional provider keys later: GROQ_API_KEY, OPENROUTER_API_KEY, …")
+    print("\n✅ .env written by the body itself. Organs acquired.")

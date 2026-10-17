@@ -31,12 +31,23 @@ HOUSE_MODELS = {
     "mistral": "mistral-large-latest",
 }
 
-# Trade names: ordered attempts (provider, model). NVIDIA-only for now.
-BRAINS = {
-    "PRIMARY": [("nvidia", HOUSE_MODELS["nvidia"])],
-    "EXPERT": [("nvidia", HOUSE_MODELS["nvidia"])],
-    "EMERGENCY": [("nvidia", HOUSE_MODELS["nvidia"])],
+def _parse_chain(spec: str):
+    chain = []
+    for part in spec.split(","):
+        part = part.strip()
+        if not part or "/" not in part:
+            continue
+        prov, model = part.split("/", 1)
+        chain.append((prov.strip(), model.strip()))
+    return chain
+
+_BRAIN_SPEC = {
+    "PRIMARY": os.getenv("BRAIN_PRIMARY", f"nvidia/{HOUSE_MODELS['nvidia']}"),
+    "EXPERT": os.getenv("BRAIN_EXPERT", f"nvidia/{HOUSE_MODELS['nvidia']}"),
+    "EMERGENCY": os.getenv("BRAIN_EMERGENCY", f"nvidia/{HOUSE_MODELS['nvidia']}"),
 }
+BRAINS = {name: (_parse_chain(spec) or [("nvidia", HOUSE_MODELS["nvidia"])])
+          for name, spec in _BRAIN_SPEC.items()}
 
 AGENT_BRAIN = {
     "scout": "PRIMARY", "scribe": "PRIMARY", "tester": "PRIMARY",
