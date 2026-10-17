@@ -21,11 +21,11 @@ def _set(agent, state, action, target, bubble, report_id=-1):
 def _run_agent(agent_id):
     try:
         if agent_id == 'scout':
-            _set('scout', 'working', 'triage_issue', '-', 'Scout sedang patroli…')
-            result = scout.patrol()
-            _set('scout', 'idle', 'patrol', '-', 'Patroli selesai')
+            _set('scout', 'working', 'triage_issue', '-', 'Scout patrolling…')
+            scout.patrol()
+            _set('scout', 'idle', 'patrol', '-', 'Patrol complete')
         else:
-            _set(agent_id, 'idle', '-', '-', f'{agent_id} belum diimplementasi')
+            _set(agent_id, 'idle', '-', '-', f'{agent_id} not implemented yet')
     except Exception as e:
         _set(agent_id, 'alert', 'error', '-', f'Error: {str(e)[:60]}')
 
@@ -35,12 +35,12 @@ def run_once():
 
 def run_daemon():
     last_run = {a: 0 for a in AGENT_ORDER}
-    print("🫀 Scheduler dimulai. Tekan Ctrl+C untuk berhenti.")
+    print("🫀 Scheduler started. Press Ctrl+C to stop.")
     while True:
         now = time.time()
         for agent_id in AGENT_ORDER:
             if now - last_run[agent_id] >= CADENCE[agent_id]:
-                print(f"⏰ {agent_id} waktunya patroli")
+                print(f"⏰ {agent_id}: patrol time")
                 threading.Thread(target=_run_agent, args=(agent_id,)).start()
                 last_run[agent_id] = now
         time.sleep(60)

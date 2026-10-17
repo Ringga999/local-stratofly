@@ -1,15 +1,15 @@
 import time
-from config import SCOUT_MODEL, REPOS, REPORTS_DIR
-from lib import nim, gh, memory
+from config import REPOS, REPORTS_DIR, brain_for
+from lib import gh, memory, provider_hub
 from lib.persona import system_prompt
 
 EXTRA = """
 You operate inside the zcp2o-maintainer system.
 - Analyze ONLY the issues listed in the user message.
 - Output ONLY a markdown table with columns:
-  | Repo | # | Type | Priority | Ringkasan (ID) | Aksi |
-- Ringkasan: max 2 kalimat, Bahasa Indonesia.
-- Aksi: satu rekomendasi konkret (add label / request info / good first issue / close duplicate / escalate to owner).
+  | Repo | # | Type | Priority | Summary | Action |
+- Summary: max 2 sentences, clear English.
+- Action: one concrete recommendation (add label / request info / good first issue / close duplicate / escalate to owner).
 """
 
 def _brief(issues) -> str:
@@ -31,10 +31,11 @@ def patrol() -> str:
                 fresh.append(iss)
                 memory.mark_seen(iss["repo"], iss["number"], "new")
     if not fresh:
-        memory.log_event("scout", "idle", "patrol", "-", "Tidak ada issue baru")
-        return "🕵️ Patroli selesai: tidak ada issue baru sejak terakhir kali."
-    table = nim.ask(SCOUT_MODEL, system_prompt("scout", EXTRA), _brief(fresh))
+        memory.log_event("scout", "idle", "patrol", "-", "No new issues")
+        return "🕵️ Patrol complete: no new issues since last run."
+    table = provider_hub.think(brain_for("scout"), system_prompt("scout", EXTRA),
+                               _brief(fresh), agent_id="scout")
     rid = _save_report(table)
-    memory.log_event("scout", "alert", "triage_issue", f"{len(fresh)} issue",
-                     f"{len(fresh)} issue baru tertriase", rid)
+    memory.log_event("scout", "alert", "triage_issue", f"{len(fresh)} issues",
+                     f"{len(fresh)} new issues triaged", rid)
     return table

@@ -17,6 +17,11 @@ def _conn():
         bubble TEXT,
         report_id INTEGER,
         since_ts REAL)""")
+    con.execute("""CREATE TABLE IF NOT EXISTS notifications(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts REAL, severity TEXT, title TEXT, body TEXT, delivered INTEGER DEFAULT 0)""")
+    con.execute("""CREATE TABLE IF NOT EXISTS kv(
+        key TEXT PRIMARY KEY, value TEXT)""")
     return con
 
 def is_seen(repo: str, number: int) -> bool:
@@ -53,3 +58,30 @@ def get_all_agent_states():
             "SELECT agent,state,action,target,bubble,report_id,since_ts FROM agent_state ORDER BY rowid"
         ).fetchall()
     return [dict(zip(("agent","state","action","target","bubble","report_id","since_ts"), r)) for r in rows]
+
+def add_notification(severity, title, body):
+    with _conn() as con:
+        con.execute("INSERT INTO notifications (ts,severity,title,body,delivered) VALUES (?,?,?,?,0)",
+                    (time.time(), severity, title, body))
+
+def pending_notifications():
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT id,ts,severity,title,body FROM notifications WHERE delivered=0 ORDER BY id"
+        ).fetchall()
+    return [dict(zip(("id","ts","severity","title","body"), r)) for r in rows]
+
+def mark_notifications_delivered(ids):
+    if not ids:
+        return
+    with _conn() as con:
+        con.executemany("UPDATE notifications SET delivered=1 WHERE id=?", [(i,) for i in ids])
+
+def set_kv(key, value):
+    with _conn() as con:
+        con.execute("INSERT OR REPLACE INTO kv VALUES (?,?)", (key, value))
+
+def get_kv(key):
+    with _conn() as con:
+        row = con.execute("SELECT value FROM kv WHERE key=?", (key,)).fetchone()
+    return row[0] if row else None

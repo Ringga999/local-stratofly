@@ -10,47 +10,39 @@ def _reload_env():
     load_dotenv(override=True)
     config.NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
     config.REPOS = [r.strip() for r in os.getenv("REPOS", "").split(",") if r.strip()]
-    config.SCOUT_MODEL = os.getenv("SCOUT_MODEL", "nvidia/nemotron-3.5-lightning-30b-a3b")
 
 def preflight() -> bool:
     from config import NVIDIA_API_KEY, REPOS
-    from lib import gh
+    from lib import gh, provider_hub
     ok = True
     if not NVIDIA_API_KEY:
-        print("❌ NVIDIA_API_KEY kosong — jalankan: python main.py setup"); ok = False
+        print("❌ NVIDIA_API_KEY missing — run: python main.py setup"); ok = False
     if not REPOS:
-        print("❌ REPOS kosong — jalankan: python main.py setup"); ok = False
+        print("❌ REPOS missing — run: python main.py setup"); ok = False
     mode = gh.token_mode()
     if mode == "anon":
-        print("ℹ️  GitHub: mode tanpa-token → repo PUBLIK terbaca (cukup untuk mulai)")
+        print("ℹ️  GitHub: tokenless mode → PUBLIC repos readable (enough to start)")
     else:
-        print(f"✅ GitHub: mode {mode} → repo privat & aksi tulis tersedia")
+        print(f"✅ GitHub: mode {mode} → private repos & write actions available")
+    avail = provider_hub.available_providers()
+    print(f"🧠 Providers with keys: {', '.join(avail) if avail else 'none'}")
     if ok:
-        print("✅ Preflight lolos")
+        print("✅ Preflight passed")
     return ok
 
-def _pick_model():
-    from lib import nim, envstore
-    import config as cfg
-    cur = cfg.SCOUT_MODEL
-    print(f"🧠 Model aktif: {cur}")
-    print("   Mengambil katalog hidup dari NVIDIA…")
-    ids = sorted(nim.list_models())
-    pref = [i for i in ids if any(k in i for k in ("instruct", "chat", "r1", "v3", "70b", "32b"))]
-    pref = [i for i in pref if i != cur][:14]
-    print("   [0] pertahankan model aktif")
-    for n, i in enumerate(pref, 1):
-        print(f"   [{n}] {i}")
-    choice = input("   Pilih nomor: ").strip()
-    if choice in ("", "0"):
-        print("   Model tidak diubah."); return
-    try:
-        pick = pref[int(choice) - 1]
-    except Exception:
-        print("   Pilihan tidak sah."); return
-    envstore.set_value("SCOUT_MODEL", pick)
-    cfg.SCOUT_MODEL = pick
-    print(f"✅ Model aktif kini: {pick}  (ditulis tubuh sendiri ke .env)")
+def _show_brains():
+    from lib import provider_hub
+    print("🧠 PROVIDER HUB — brains and priorities")
+    avail = provider_hub.available_providers()
+    print(f"   Providers with keys: {', '.join(avail) if avail else 'none'}")
+    for name, lines in provider_hub.describe():
+        print(f"   [{name}]")
+        for ln in lines:
+            print(ln)
+    print()
+    print("   To add a provider later: put its key in .env")
+    print("   (GROQ_API_KEY, OPENROUTER_API_KEY, DEEPSEEK_API_KEY, MISTRAL_API_KEY)")
+    print("   then restart. The hub picks it up automatically.")
 
 def _serve():
     from lib import api_server
@@ -75,8 +67,8 @@ if __name__ == "__main__":
         from lib import onboard
         onboard.run()
         raise SystemExit(0)
-    if cmd == "model":
-        _pick_model()
+    if cmd == "brains":
+        _show_brains()
         raise SystemExit(0)
     if cmd == "serve":
         _serve()
@@ -95,7 +87,7 @@ if __name__ == "__main__":
         telegram_gateway.run()
         raise SystemExit(0)
     if _needs_onboard():
-        print("🌱 Pertama kali hidup — saya akan meminta akses yang saya butuhkan…")
+        print("🌱 First boot — I will ask for the access I need…")
         from lib import onboard
         onboard.run()
         _reload_env()
@@ -105,6 +97,6 @@ if __name__ == "__main__":
         if not preflight():
             raise SystemExit(1)
         from agents import scout
-        print("🕵️ Scout memulai patroli...")
+        print("🕵️ Scout starting patrol...")
         print()
         print(scout.patrol())

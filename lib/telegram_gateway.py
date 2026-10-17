@@ -4,7 +4,7 @@ from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 
 import config
-from lib import memory, envstore, nim
+from lib import memory, provider_hub
 
 ROSTER = [
     ("scout", "🕵️", "Scout"), ("triage", "🔍", "Triage"), ("sentinel", "🛡️", "Sentinel"),
@@ -13,17 +13,17 @@ ROSTER = [
     ("diplomat", "🕊️", "Diplomat"),
 ]
 
-HELP_TEXT = ("<b>Perintah:</b>\n/status — papan hidup 10 agen\n/patrol — kirim Scout sekarang\n"
-             "/reports — daftar laporan\n/report &lt;id&gt; — baca laporan\n/model — otak aktif\n"
-             "/approve — setujui draft Sayap C\n/help — bantuan ini")
+HELP_TEXT = ("<b>Commands:</b>\n/status — live board of the 10 agents\n/patrol — send Scout now\n"
+             "/reports — list reports\n/report &lt;id&gt; — read a report\n"
+             "/brains — provider hub status\n/approve — approve a Wing-C draft\n/help — this help")
 
 def _menu():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("📊 Status", callback_data="status"),
-         InlineKeyboardButton("🕵️ Patroli", callback_data="patrol")],
-        [InlineKeyboardButton("📚 Laporan", callback_data="reports"),
-         InlineKeyboardButton("🧠 Model", callback_data="model")],
-        [InlineKeyboardButton("❓ Bantuan", callback_data="help")],
+         InlineKeyboardButton("🕵️ Patrol", callback_data="patrol")],
+        [InlineKeyboardButton("📚 Reports", callback_data="reports"),
+         InlineKeyboardButton("🧠 Brains", callback_data="brains")],
+        [InlineKeyboardButton("❓ Help", callback_data="help")],
     ])
 
 def _escape(t: str) -> str:
@@ -31,24 +31,35 @@ def _escape(t: str) -> str:
 
 def _board() -> str:
     states = {s["agent"]: s for s in memory.get_all_agent_states()}
-    lines = ["<b>🏛️ RUANG KERJA ZCP2O — papan hidup</b>", ""]
+    lines = ["<b>🏛️ ZCP2O WORKROOM — live board</b>", ""]
     for aid, emo, name in ROSTER:
         s = states.get(aid)
         if s:
             lines.append(f"{emo} <b>{name}</b>: {s['state']} · {s['action']}")
         else:
-            lines.append(f"{emo} <b>{name}</b>: offline · tidur 💤")
+            lines.append(f"{emo} <b>{name}</b>: offline · asleep 💤")
     lines.append("")
-    lines.append(f"🧠 Otak: <code>{config.SCOUT_MODEL}</code>")
+    avail = provider_hub.available_providers()
+    lines.append(f"🧠 Providers with keys: {', '.join(avail) if avail else 'none'}")
     return "\n".join(lines)
 
 def _reports_text() -> str:
     evs = [e for e in memory.recent_events(30) if (e["report_id"] or 0) > 0]
     if not evs:
-        return "📚 Belum ada laporan tersimpan."
-    lines = ["<b>📚 Laporan terakhir:</b>"]
+        return "📚 No reports stored yet."
+    lines = ["<b>📚 Latest reports:</b>"]
     for e in evs[:8]:
         lines.append(f"• <code>/report {e['report_id']}</code> — {e['agent']} · {e['bubble']}")
+    return "\n".join(lines)
+
+def _brains_text() -> str:
+    lines = ["<b>🧠 PROVIDER HUB</b>"]
+    for name, chain in provider_hub.describe():
+        lines.append(f"<b>{name}</b>:")
+        lines.extend(chain)
+    lines.append("")
+    lines.append("To add providers later, put keys in .env "
+                 "(GROQ_API_KEY, OPENROUTER_API_KEY, …) and restart.")
     return "\n".join(lines)
 
 async def _send_long(chat_id, raw, context):
@@ -60,16 +71,17 @@ async def _send_long(chat_id, raw, context):
         await context.bot.send_message(chat_id, text[i:i+4000])
 
 async def cmd_start(update, context):
+    memory.set_kv("tg_owner", str(update.effective_chat.id))
     await update.message.reply_text(
-        "<b>⚔️ ZCP2O Maintainer Bot</b>\nKru sepuluh jiwa siap melayani.\n"
-        "Tekan tombol di bawah atau ketik perintah.",
+        "<b>⚔️ ZCP2O Maintainer Bot</b>\nTen souls ready to serve.\n"
+        "Use the buttons below or type a command.",
         parse_mode=ParseMode.HTML, reply_markup=_menu())
 
 async def cmd_status(update, context):
     await update.message.reply_text(_board(), parse_mode=ParseMode.HTML, reply_markup=_menu())
 
 async def cmd_patrol(update, context):
-    msg = await update.message.reply_text("🕵️ Scout berangkat patroli…")
+    msg = await update.message.reply_text("🕵️ Scout is heading out on patrol…")
     from agents import scout
     result = await asyncio.to_thread(scout.patrol)
     await msg.delete()
@@ -80,21 +92,24 @@ async def cmd_reports(update, context):
 
 async def cmd_report(update, context):
     if not context.args:
-        await update.message.reply_text("Pakai: /report <id>")
+        await update.message.reply_text("Usage: /report <id>")
         return
-    f = config.REPORTS_DIR / f"report_{int(context.args[0])}.md"
+    try:
+        rid = int(context.args[0])
+    except Exception:
+        await update.message.reply_text("Invalid id.")
+        return
+    f = config.REPORTS_DIR / f"report_{rid}.md"
     if not f.exists():
-        await update.message.reply_text("Laporan tidak ditemukan.")
+        await update.message.reply_text("Report not found.")
         return
     await _send_long(update.effective_chat.id, f.read_text(encoding="utf-8"), context)
 
-async def cmd_model(update, context):
-    await update.message.reply_text(
-        f"🧠 Model aktif: <code>{config.SCOUT_MODEL}</code>\nGanti lewat menu → 🧠 Model",
-        parse_mode=ParseMode.HTML)
+async def cmd_brains(update, context):
+    await update.message.reply_text(_brains_text(), parse_mode=ParseMode.HTML)
 
 async def cmd_approve(update, context):
-    await update.message.reply_text("🕊️ Belum ada draft Sayap C yang menunggu persetujuan.")
+    await update.message.reply_text("🕊️ No Wing-C drafts waiting for approval yet.")
 
 async def cmd_help(update, context):
     await update.message.reply_text(HELP_TEXT, parse_mode=ParseMode.HTML)
@@ -106,38 +121,42 @@ async def on_button(update, context):
     if data == "status":
         await q.edit_message_text(_board(), parse_mode=ParseMode.HTML, reply_markup=_menu())
     elif data == "patrol":
-        await q.edit_message_text("🕵️ Scout berangkat patroli…")
+        await q.edit_message_text("🕵️ Scout is heading out on patrol…")
         from agents import scout
         result = await asyncio.to_thread(scout.patrol)
         await _send_long(q.message.chat_id, result, context)
     elif data == "reports":
         await q.edit_message_text(_reports_text(), parse_mode=ParseMode.HTML, reply_markup=_menu())
-    elif data == "model":
-        ids = await asyncio.to_thread(nim.list_models)
-        pref = [i for i in sorted(ids) if any(k in i for k in ("instruct", "chat", "r1", "v3"))][:8]
-        kb = InlineKeyboardMarkup(
-            [[InlineKeyboardButton(i, callback_data="modelset:" + i)] for i in pref])
-        await q.edit_message_text("🧠 Pilih otak:", reply_markup=kb)
-    elif data.startswith("modelset:"):
-        pick = data.split(":", 1)[1]
-        envstore.set_value("SCOUT_MODEL", pick)
-        config.SCOUT_MODEL = pick
-        await q.edit_message_text(f"✅ Otak kini: <code>{pick}</code>",
-                                  parse_mode=ParseMode.HTML, reply_markup=_menu())
+    elif data == "brains":
+        await q.edit_message_text(_brains_text(), parse_mode=ParseMode.HTML, reply_markup=_menu())
     elif data == "help":
         await q.edit_message_text(HELP_TEXT, parse_mode=ParseMode.HTML, reply_markup=_menu())
+
+async def _deliver(context):
+    owner = memory.get_kv("tg_owner")
+    if not owner:
+        return
+    pend = memory.pending_notifications()
+    if not pend:
+        return
+    for n in pend:
+        icon = {"warn": "⚠️", "crit": "🚨"}.get(n["severity"], "ℹ️")
+        text = f"{icon} <b>{_escape(n['title'])}</b>\n{_escape(n['body'])}"
+        await context.bot.send_message(int(owner), text, parse_mode=ParseMode.HTML)
+    memory.mark_notifications_delivered([n["id"] for n in pend])
 
 def ensure_token() -> str:
     tok = config.TELEGRAM_BOT_TOKEN
     if tok:
         return tok
-    print("\n📡 MULUT: saya butuh token bot Telegram untuk bisa bicara.")
-    print("   Membuka BotFather di browser…")
+    print("\n📡 MOUTH: I need a Telegram bot token to speak.")
+    print("   Opening BotFather in your browser…")
     webbrowser.open("https://t.me/BotFather")
-    print("   Ketik /newbot → beri nama → copy token")
-    tok = input("   Tempel token di sini: ").strip()
+    print("   Send /newbot → give a name → copy the token")
+    tok = input("   Paste the token here: ").strip()
     if not tok:
-        raise SystemExit("❌ Token kosong — ulangi: python main.py telegram")
+        raise SystemExit("❌ Empty token — run again: python main.py telegram")
+    from lib import envstore
     envstore.set_value("TELEGRAM_BOT_TOKEN", tok)
     config.TELEGRAM_BOT_TOKEN = tok
     return tok
@@ -150,9 +169,10 @@ def run():
     app.add_handler(CommandHandler("patrol", cmd_patrol))
     app.add_handler(CommandHandler("reports", cmd_reports))
     app.add_handler(CommandHandler("report", cmd_report))
-    app.add_handler(CommandHandler("model", cmd_model))
+    app.add_handler(CommandHandler("brains", cmd_brains))
     app.add_handler(CommandHandler("approve", cmd_approve))
     app.add_handler(CommandHandler("help", cmd_help))
     app.add_handler(CallbackQueryHandler(on_button))
-    print("📡 Bot hidup. Buka Telegram Anda dan ketik /start.")
+    app.job_queue.run_repeating(_deliver, interval=10, first=5)
+    print("📡 Bot alive. Open Telegram and send /start.")
     app.run_polling()
