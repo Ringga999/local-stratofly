@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, threading
 
 def _needs_onboard() -> bool:
     from config import NVIDIA_API_KEY, REPOS
@@ -10,7 +10,7 @@ def _reload_env():
     load_dotenv(override=True)
     config.NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
     config.REPOS = [r.strip() for r in os.getenv("REPOS", "").split(",") if r.strip()]
-    config.SCOUT_MODEL = os.getenv("SCOUT_MODEL", "meta/llama-3.1-70b-instruct")
+    config.SCOUT_MODEL = os.getenv("SCOUT_MODEL", "nvidia/nemotron-3.5-lightning-30b-a3b")
 
 def preflight() -> bool:
     from config import NVIDIA_API_KEY, REPOS
@@ -33,7 +33,7 @@ def _pick_model():
     from lib import nim, envstore
     import config as cfg
     cur = cfg.SCOUT_MODEL
-    print(f" Model aktif: {cur}")
+    print(f"🧠 Model aktif: {cur}")
     print("   Mengambil katalog hidup dari NVIDIA…")
     ids = sorted(nim.list_models())
     pref = [i for i in ids if any(k in i for k in ("instruct", "chat", "r1", "v3", "70b", "32b"))]
@@ -52,6 +52,23 @@ def _pick_model():
     cfg.SCOUT_MODEL = pick
     print(f"✅ Model aktif kini: {pick}  (ditulis tubuh sendiri ke .env)")
 
+def _serve():
+    from lib import api_server
+    api_server.run()
+
+def _mock():
+    from lib import mock
+    mock.run()
+
+def _schedule():
+    from lib import scheduler
+    scheduler.run_daemon()
+
+def _all():
+    from lib import api_server, scheduler
+    threading.Thread(target=api_server.run, daemon=True).start()
+    scheduler.run_daemon()
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "patrol"
     if cmd == "setup":
@@ -60,6 +77,18 @@ if __name__ == "__main__":
         raise SystemExit(0)
     if cmd == "model":
         _pick_model()
+        raise SystemExit(0)
+    if cmd == "serve":
+        _serve()
+        raise SystemExit(0)
+    if cmd == "mock":
+        _mock()
+        raise SystemExit(0)
+    if cmd == "schedule":
+        _schedule()
+        raise SystemExit(0)
+    if cmd == "all":
+        _all()
         raise SystemExit(0)
     if _needs_onboard():
         print("🌱 Pertama kali hidup — saya akan meminta akses yang saya butuhkan…")
