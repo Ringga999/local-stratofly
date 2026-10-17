@@ -9,6 +9,14 @@ def _conn():
     con.execute("""CREATE TABLE IF NOT EXISTS activity_log(
         ts REAL, agent TEXT, state TEXT, action TEXT, target TEXT,
         bubble TEXT, report_id INTEGER)""")
+    con.execute("""CREATE TABLE IF NOT EXISTS agent_state(
+        agent TEXT PRIMARY KEY,
+        state TEXT,
+        action TEXT,
+        target TEXT,
+        bubble TEXT,
+        report_id INTEGER,
+        since_ts REAL)""")
     return con
 
 def is_seen(repo: str, number: int) -> bool:
@@ -33,3 +41,15 @@ def recent_events(limit: int = 50):
             "SELECT ts,agent,state,action,target,bubble,report_id FROM activity_log ORDER BY ts DESC LIMIT ?",
             (limit,)).fetchall()
     return [dict(zip(("ts","agent","state","action","target","bubble","report_id"), r)) for r in rows]
+
+def update_agent_state(agent, state, action, target, bubble, report_id=-1):
+    with _conn() as con:
+        con.execute("INSERT OR REPLACE INTO agent_state VALUES (?,?,?,?,?,?,?)",
+                    (agent, state, action, target, bubble, report_id, time.time()))
+
+def get_all_agent_states():
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT agent,state,action,target,bubble,report_id,since_ts FROM agent_state ORDER BY rowid"
+        ).fetchall()
+    return [dict(zip(("agent","state","action","target","bubble","report_id","since_ts"), r)) for r in rows]
