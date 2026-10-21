@@ -173,6 +173,7 @@ def run():
     app.add_handler(CommandHandler("approve", cmd_approve))
     app.add_handler(CommandHandler("help", cmd_help))
     app.add_handler(CallbackQueryHandler(on_button))
-    app.job_queue.run_repeating(_deliver, interval=10, first=5)
+    app.job_queue.run_repeating(_deliver, interval=10, first=5,
+                                job_kwargs={"misfire_grace_time": 30, "coalesce": True})
     print("📡 Bot alive. Open Telegram and send /start.")
     app.run_polling()

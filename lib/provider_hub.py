@@ -29,7 +29,7 @@ def set_brain_first(brain: str, provider: str, model: str):
         chain.remove(pair)
     chain.insert(0, pair)
     spec = ",".join(f"{p}/{m}" for p, m in chain)
-    envstore.set_value("BRAIN_" + brain, spec)
+    memory.set_kv("brain_last_" + brain, f"{provider}|{model}")
     config.BRAINS[brain] = chain
 
 def _chain(brain: str):
@@ -59,7 +59,7 @@ def _notify_fallback(agent_id, brain, failed, used):
     memory.log_event(agent_id or "hub", "alert", "provider_fallback",
                      f"{failed[0]}->{used[0]}", body[:80])
 
-def think(brain: str, system: str, user: str, agent_id=None, temperature: float = 0.3) -> str:
+def think(brain: str, system: str, user: str, agent_id=None, temperature: float = 0.3, max_tokens: int = 2048) -> str:
     chain = _chain(brain)
     last_err = None
     failed_pair = None
@@ -72,9 +72,14 @@ def think(brain: str, system: str, user: str, agent_id=None, temperature: float 
                 messages=[{"role": "system", "content": system},
                           {"role": "user", "content": user}],
                 temperature=temperature,
-                max_tokens=1024,
+                max_tokens=max_tokens,
             )
-            text = resp.choices[0].message.content or ""
+            msg = resp.choices[0].message
+            text = (msg.content or getattr(msg, "reasoning_content", None) or "").strip()
+            if not text:
+                failed_pair = (prov, model)
+                last_err = RuntimeError(f"{prov}/{model} returned empty content")
+                continue
             memory.set_kv("brain_last_" + brain, f"{prov}|{model}")
             if failed_pair is not None:
                 _notify_fallback(agent_id, brain, failed_pair, (prov, model))

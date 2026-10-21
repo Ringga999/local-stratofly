@@ -6,6 +6,8 @@ from lib.persona import system_prompt
 EXTRA = """
 You operate inside the zcp2o-maintainer system.
 - Analyze ONLY the issues listed in the user message.
+- Do NOT narrate your reasoning. Do NOT print a thinking process. Do NOT explain.
+- Your reply must BEGIN with the table header row and contain NOTHING else.
 - Output ONLY a markdown table with columns:
   | Repo | # | Type | Priority | Summary | Action |
 - Summary: max 2 sentences, clear English.
@@ -16,6 +18,12 @@ def _brief(issues) -> str:
     lines = [f"- {i['repo']} #{i['number']} | {i['title']} | labels: {', '.join(i['labels']) or '-'}"
              for i in issues]
     return "Issues to triage:\n" + "\n".join(lines)
+
+def _extract_table(text: str) -> str:
+    lines = [ln for ln in text.splitlines() if ln.strip().startswith("|")]
+    if not lines:
+        return text.strip()
+    return "\n".join(lines)
 
 def _save_report(table: str) -> int:
     rid = int(time.time())
@@ -33,8 +41,9 @@ def patrol() -> str:
     if not fresh:
         memory.log_event("scout", "idle", "patrol", "-", "No new issues")
         return "🕵️ Patrol complete: no new issues since last run."
-    table = provider_hub.think(brain_for("scout"), system_prompt("scout", EXTRA),
-                               _brief(fresh), agent_id="scout")
+    raw = provider_hub.think(brain_for("scout"), system_prompt("scout", EXTRA),
+                             _brief(fresh), agent_id="scout", max_tokens=2048)
+    table = _extract_table(raw)
     rid = _save_report(table)
     memory.log_event("scout", "alert", "triage_issue", f"{len(fresh)} issues",
                      f"{len(fresh)} new issues triaged", rid)
