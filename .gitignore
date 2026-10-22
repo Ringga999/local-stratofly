@@ -29,3 +29,11 @@ desktop.ini
 
 # Bootstrap installer (remove before going public)
 bootstrap_settings.py
+
+# Instance data & one-shot scripts (per-user, not public)
+settings.json
+fix_originality.py
+fix_readme_and_testplan.py
+fix_docs.py
+write_docs.py
+write_readme.py

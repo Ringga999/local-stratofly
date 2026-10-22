@@ -9,7 +9,7 @@
 ## Prerequisites (apply to ALL tests)
 
 - **Instabox virtual computer** assigned to every agent involved
-- Engineering agents use **`ponytail` repository from GitHub**
+- Engineering agents use **`example-engine` repository from GitHub**
 - Stratofly platform-core complete (provider hub, runtime, scheduler,
   gateway, settings, self-onboarding, blockchain logging)
 - `settings.json` configured per test scenario
@@ -55,7 +55,7 @@
 - Auto-reply using templates
 
 **Agent 2D — Social Media Exchange Handler**
-- Access exchange platforms (e.g., kingdomlike)
+- Access exchange platforms (e.g., example-exchange-platform)
 - Handle sacrificial accounts
 - Execute daily tasks on exchanges
 
@@ -82,7 +82,7 @@ template engine, exchange platform connectors
 ## 🔬 TEST 4 — Product Operations Month
 
 **Scope:**
-- Maintain `notapeer-app` repository
+- Maintain `example-product-app` repository
 - Create ads (draft-first, owner approval mandatory)
 - Social media admin: IG, WA, Telegram, X, Discord
 
@@ -99,7 +99,7 @@ template engine, exchange platform connectors
 
 **Scope:**
 - Find games suitable as Godot-based agent activity monitor
-- Study `hermes-3d` GitHub repository concept
+- Study `example-3d-monitor` concept
 - Reverse-engineer learnings into Stratofly improvements
 
 **Note:** This test IS product development simultaneously.
@@ -112,7 +112,7 @@ template engine, exchange platform connectors
 
 ## 🔬 TEST 6 — Protocol Long-Run (dogfood)
 
-**Scope:** full maintainer crew on `zcp2o-protocol` for 3 months.
+**Scope:** full maintainer crew on `example-protocol` for 3 months.
 
 **Required agent capabilities:**
 1. Repository solidity audit (principle conflicts, inconsistencies)
@@ -128,7 +128,7 @@ template engine, exchange platform connectors
 ## 🔬 TEST 7 — Finance Trading AI Team
 
 **Scope:**
-- Agents use `OpenTerminal` GitHub repository for analysis/news/references
+- Agents use `example-trading-terminal` repository for analysis/news/references
 - Execute trades autonomously
 - Target: positive P&L over 1+ month
 
