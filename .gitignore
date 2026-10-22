@@ -37,3 +37,4 @@ fix_readme_and_testplan.py
 fix_docs.py
 write_docs.py
 write_readme.py
+install_model_kind.py
