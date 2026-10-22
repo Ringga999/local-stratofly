@@ -1,0 +1,35 @@
+{
+  "settings_schema": 2,
+  "crew_template": "zcp2o-maintainer",
+  "repos": ["Ringga999/zcp2o-protocol", "Ringga999/notapeer-app"],
+  "brains": {
+    "WORKHORSE": [
+      {"provider": "nvidia", "model": "deepseek-ai/deepseek-coder-6.7b-instruct"},
+      {"provider": "nvidia", "model": "nvidia/nemotron-3.5-lightning-30b-a3b"}
+    ],
+    "SPECIALIST": [
+      {"provider": "nvidia", "model": "nvidia/nemotron-3.5-lightning-30b-a3b"}
+    ],
+    "LIFELINE": [
+      {"provider": "nvidia", "model": "nvidia/nemotron-3.5-lightning-30b-a3b"}
+    ]
+  },
+  "agents": {
+    "scout":    {"enabled": true, "autonomous": true, "brain": "WORKHORSE",  "cadence_hours": 6,  "division": "Engineering", "template_role": "scout"},
+    "triage":   {"enabled": true, "autonomous": true, "brain": "SPECIALIST", "cadence_hours": 6,  "division": "Engineering", "template_role": "triage"},
+    "tester":   {"enabled": true, "autonomous": true, "brain": "WORKHORSE",  "cadence_hours": 6,  "division": "Engineering", "template_role": "tester"},
+    "sentinel": {"enabled": true, "autonomous": true, "brain": "SPECIALIST", "cadence_hours": 6,  "division": "Security",    "template_role": "sentinel"},
+    "bridge":   {"enabled": true, "autonomous": true, "brain": "SPECIALIST", "cadence_hours": 12, "division": "Security",    "template_role": "bridge"},
+    "scribe":   {"enabled": true, "autonomous": true, "brain": "WORKHORSE",  "cadence_hours": 12, "division": "Content",     "template_role": "scribe"},
+    "medic":    {"enabled": true, "autonomous": true, "brain": "SPECIALIST", "cadence_hours": 12, "division": "Operations",  "template_role": "medic"},
+    "release":  {"enabled": true, "autonomous": true, "brain": "WORKHORSE",  "cadence_hours": 12, "division": "Operations",  "template_role": "release"},
+    "herald":   {"enabled": true, "autonomous": true, "brain": "WORKHORSE",  "cadence_hours": 4,  "division": "Community",   "template_role": "herald"},
+    "diplomat": {"enabled": true, "autonomous": true, "brain": "WORKHORSE",  "cadence_hours": 4,  "division": "Community",   "template_role": "diplomat"}
+  },
+  "limits": { "max_total_agents": 30, "max_per_provider": 10 },
+  "notifications": {
+    "severity_filter": ["info", "warn", "crit"],
+    "quiet_hours_utc": null,
+    "telegram_deliver_seconds": 10
+  }
+}
