@@ -1,8 +1,7 @@
 # TEAM ROSTER v2 — 10 Agen, Tiga Sayap
 
-> Versi: 2.0 · 11 Oktober 2026 · Menggantikan roster 5 agen di README v1
+> Versi: 2.0 · 11 Oktober 2026 · Menggantikan roster 5 agen awal
 > Sumber kebenaran persona: folder `agents/personas/`
-> Sumber kebenaran kontrak visual: `docs/GAME-SPEC-v1.md` + amandemen v1.1
 
 ## Sayap A — Protokol & Repo (kadens: patroli tiap 6 jam)
 
@@ -14,10 +13,10 @@
 | scribe | Scribe | 📝 | #AED581 | scribe.md | Dokumentasi & changelog |
 | tester | Tester | 🧪 | #F06292 | tester.md | Analisis hasil CI/test |
 
-## Sayap B — Maintainer App ZCP2O (kadens: patroli tiap 12 jam + event release)
+## Sayap B — Stratofly Applications (kadens: patroli tiap 12 jam + event release)
 
-Scope: semua app yang berdiri di atas protokol — NotaPeer, ZproAI,
-zcp2o-wallet, zcp2o-captcha widget, zcp2o-chainview.
+Scope: semua app yang berdiri di atas protokol — contoh aplikasi ekosistem,
+
 
 | id | Nama | Emoji | Warna | Persona | Tugas |
 |---|---|---|---|---|---|

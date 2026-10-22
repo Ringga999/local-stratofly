@@ -1,0 +1,50 @@
+{
+  "settings_schema": 2,
+  "crew_template": "maintainer-crew",
+  "repos": [
+    "example-org/example-repo"
+  ],
+  "brains": {
+    "WORKHORSE": [
+      {
+        "provider": "nvidia",
+        "model": "example-org/example-model"
+      }
+    ],
+    "SPECIALIST": [
+      {
+        "provider": "nvidia",
+        "model": "example-org/example-model"
+      }
+    ],
+    "LIFELINE": [
+      {
+        "provider": "nvidia",
+        "model": "example-org/example-model"
+      }
+    ]
+  },
+  "agents": {
+    "scout": {
+      "enabled": true,
+      "autonomous": true,
+      "brain": "WORKHORSE",
+      "cadence_hours": 6,
+      "division": "Engineering",
+      "template_role": "scout"
+    }
+  },
+  "limits": {
+    "max_total_agents": 30,
+    "max_per_provider": 10
+  },
+  "notifications": {
+    "severity_filter": [
+      "info",
+      "warn",
+      "crit"
+    ],
+    "quiet_hours_utc": null,
+    "telegram_deliver_seconds": 10
+  }
+}

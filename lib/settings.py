@@ -22,7 +22,7 @@ def defaults() -> dict:
     house = config.HOUSE_MODELS["nvidia"]
     return {
         "settings_schema": SCHEMA,
-        "crew_template": "zcp2o-maintainer",
+        "crew_template": "maintainer-crew",
         "repos": list(config.REPOS),
         "brains": {
             "WORKHORSE":  [{"provider": "nvidia", "model": house}],
