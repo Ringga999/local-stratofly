@@ -41,20 +41,23 @@ def _parse_chain(spec: str):
         chain.append((prov.strip(), model.strip()))
     return chain
 
+# Brain names renamed 22 Oct 2026: WORKHORSE / SPECIALIST / LIFELINE.
+# Env fallback keeps old BRAIN_PRIMARY/EXPERT/EMERGENCY keys alive until
+# settings.json absorbs this layer (Friday). User-facing strings: English.
 _BRAIN_SPEC = {
-    "PRIMARY": os.getenv("BRAIN_PRIMARY", f"nvidia/{HOUSE_MODELS['nvidia']}"),
-    "EXPERT": os.getenv("BRAIN_EXPERT", f"nvidia/{HOUSE_MODELS['nvidia']}"),
-    "EMERGENCY": os.getenv("BRAIN_EMERGENCY", f"nvidia/{HOUSE_MODELS['nvidia']}"),
+    "WORKHORSE":  os.getenv("BRAIN_WORKHORSE")  or os.getenv("BRAIN_PRIMARY",   f"nvidia/{HOUSE_MODELS['nvidia']}"),
+    "SPECIALIST": os.getenv("BRAIN_SPECIALIST") or os.getenv("BRAIN_EXPERT",    f"nvidia/{HOUSE_MODELS['nvidia']}"),
+    "LIFELINE":   os.getenv("BRAIN_LIFELINE")   or os.getenv("BRAIN_EMERGENCY", f"nvidia/{HOUSE_MODELS['nvidia']}"),
 }
 BRAINS = {name: (_parse_chain(spec) or [("nvidia", HOUSE_MODELS["nvidia"])])
           for name, spec in _BRAIN_SPEC.items()}
 
 AGENT_BRAIN = {
-    "scout": "PRIMARY", "scribe": "PRIMARY", "tester": "PRIMARY",
-    "herald": "PRIMARY", "diplomat": "PRIMARY", "release": "PRIMARY",
-    "triage": "EXPERT", "sentinel": "EXPERT", "bridge": "EXPERT", "medic": "EXPERT",
+    "scout": "WORKHORSE", "scribe": "WORKHORSE", "tester": "WORKHORSE",
+    "herald": "WORKHORSE", "diplomat": "WORKHORSE", "release": "WORKHORSE",
+    "triage": "SPECIALIST", "sentinel": "SPECIALIST", "bridge": "SPECIALIST", "medic": "SPECIALIST",
 }
-DEFAULT_BRAIN = "PRIMARY"
+DEFAULT_BRAIN = "WORKHORSE"
 
 def provider_key(provider: str) -> str:
     return os.getenv(PROVIDERS[provider]["key_env"], "")
