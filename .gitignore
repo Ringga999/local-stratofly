@@ -1,9 +1,31 @@
-.env
-venv/
+# Python
 __pycache__/
-*.pyc
-.pytest_cache/
-reports/
-!.gitkeep
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environment
+venv/
+.venv/
+
+# Secrets
+.env
+
+# Runtime data
 memory.sqlite3
-github_token.json
+memory.sqlite3-journal
+reports/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Bootstrap installer (remove before going public)
+bootstrap_settings.py
