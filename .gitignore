@@ -45,3 +45,6 @@ fix_wizard_ux.py
 # doc installer + journal draft (not part of engine)
 install_specs.py
 _journal_draft/
+# S3 installer(s)
+install_web.py
+install_web2.py

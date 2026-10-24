@@ -1,0 +1,90 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stratofly - Localhost Dashboard</title>
+<style>
+:root{--bg:#0e1116;--card:#161b22;--ink:#e6edf3;--mut:#8b949e;--line:#30363d;
+--green:#3fb950;--amber:#d29922;--grey:#6e7681;--blue:#58a6ff;--red:#f85149}
+@media(prefers-color-scheme:light){:root{--bg:#f6f8fa;--card:#fff;--ink:#1f2328;
+--mut:#656d76;--line:#d0d7de}}
+*{box-sizing:border-box}body{margin:0;font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif;
+background:var(--bg);color:var(--ink)}
+header{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;
+align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:18px;margin:0}header .tag{color:var(--mut);font-size:12px}
+.wrap{padding:22px;max-width:1100px;margin:0 auto;display:grid;gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:0 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.agent{border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;
+flex-direction:column;gap:6px}
+.agent .nm{font-weight:600}.agent .dv{color:var(--mut);font-size:12px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px}
+.armed .dot{background:var(--green)}.standby .dot{background:var(--amber)}.off .dot{background:var(--grey)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px}
+.btn{cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--ink);
+border-radius:6px;padding:3px 8px;font-size:12px}
+.btn:hover{border-color:var(--blue)}
+.brain{border-left:3px solid var(--blue);padding:6px 10px;margin:6px 0;
+background:rgba(88,166,255,.06);border-radius:0 6px 6px 0}
+.badge{font-size:11px;padding:1px 6px;border-radius:20px;border:1px solid var(--line);color:var(--mut)}
+.bar{height:8px;background:var(--line);border-radius:6px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--green)}
+.bar.full i{background:var(--red)}
+.mut{color:var(--mut)}.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+.note{font-size:12px;color:var(--mut);border-top:1px dashed var(--line);padding-top:10px;margin-top:6px}
+.repolist li{margin:2px 0}
+</style></head><body>
+<header><h1>&#9876; Stratofly</h1><span class="tag">localhost dashboard &middot; one crew, every free API</span>
+<span class="tag" id="clock"></span></header>
+<div class="wrap">
+ <div class="card"><h2>Crew &middot; config status</h2><div class="grid" id="agents"></div>
+   <div class="note" id="note"></div></div>
+ <div class="card"><h2>Brains &middot; model-kind aware</h2><div id="brains"></div></div>
+ <div class="card"><h2>Free-tier limits</h2><div id="limits"></div></div>
+ <div class="card"><h2>Watched repos</h2><ul class="repolist mono" id="repos"></ul></div>
+</div>
+<script>
+function $(id){return document.getElementById(id);}
+async function api(p,opt){var r=await fetch(p,opt);return r.json();}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){
+ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+async function load(){
+ var s=await api("/api/state");
+ $("note").textContent=s.note||"";
+ $("agents").innerHTML=s.agents.map(function(a){
+   return '<div class="agent '+a.cls+'">'+
+     '<div class="nm"><span class="dot"></span>'+esc(a.id)+'</div>'+
+     '<div class="dv">'+esc(a.division)+' &middot; '+esc(a.brain)+' &middot; '+a.cadence_hours+'h</div>'+
+     '<div class="row">'+
+     '<button class="btn" onclick="tog(\''+esc(a.id)+'\',\'autonomous\')">'+(a.autonomous?"auto:ON":"auto:OFF")+'</button>'+
+     '<button class="btn" onclick="tog(\''+esc(a.id)+'\',\'enabled\')">'+(a.enabled?"live":"paused")+'</button>'+
+     '</div></div>';
+ }).join("");
+ $("brains").innerHTML=Object.keys(s.brains).map(function(k){
+   var ch=s.brains[k];
+   var inner=ch.length?ch.map(function(e){
+     return '<span class="mono">'+esc(e.provider)+"/"+esc(e.model)+'</span> <span class="badge">'+esc(e.kind)+'</span>';
+   }).join("<br>"):'<span class="mut">(empty)</span>';
+   return '<div class="brain"><strong>'+k+'</strong> <span class="mut">('+ch.length+')</span><br>'+inner+'</div>';
+ }).join("");
+ var bars=Object.keys(s.per_provider).map(function(p){
+   var n=s.per_provider[p];var full=n>=s.max_per_provider;
+   return '<div>'+esc(p)+' <span class="mono">'+n+"/"+s.max_per_provider+'</span>'+
+     '<div class="bar '+(full?"full":"")+'"><i style="width:'+Math.min(100,n/s.max_per_provider*100)+'%"></i></div></div>';
+ }).join("");
+ var tfull=s.total>=s.max_total;
+ $("limits").innerHTML=bars+'<div style="margin-top:8px">total <span class="mono">'+s.total+"/"+s.max_total+'</span>'+
+   '<div class="bar '+(tfull?"full":"")+'"><i style="width:'+Math.min(100,s.total/s.max_total*100)+'%"></i></div></div>';
+ $("repos").innerHTML=(s.repos.length?s.repos:["(none)"]).map(function(r){return "<li>"+esc(r)+"</li>";}).join("");
+ $("clock").textContent="updated "+new Date().toLocaleTimeString();
+}
+async function tog(id,f){
+ var s=await api("/api/state");var a=null;
+ for(var i=0;i<s.agents.length;i++){if(s.agents[i].id===id){a=s.agents[i];break;}}
+ if(!a)return;
+ var patch={agents:{}};patch.agents[id]={};patch.agents[id][f]=!a[f];
+ await api("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(patch)});
+ load();
+}
+load();setInterval(load,5000);
+</script></body></html>
