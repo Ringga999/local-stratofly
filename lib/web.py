@@ -1,7 +1,7 @@
-# lib/web.py - Stratofly localhost dashboard (S3). Stdlib only.
-# Reads the page from lib/dashboard.html (no embedded HTML -> no quote traps).
-# Consumes the GREEN lib.settings + lib.model_kind. Zero new dependencies.
-import json, os, sys
+# lib/web.py v2 - Stratofly localhost dashboard (S4: patrol + reports).
+# Stdlib only. Reads page from lib/dashboard.html. Consumes green
+# lib.settings + lib.model_kind. Adds /api/patrol endpoint (subprocess).
+import json, os, sys, subprocess
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -13,7 +13,7 @@ from lib import model_kind
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_PORT = 8765
-ALLOWED = {"enabled", "autonomous", "cadence_hours", "brain", "division"}
+ALLOWED = {"enabled", "autonomous", "cadence_hours", "brain", "division", "role"}
 BRAIN_NAMES = ["WORKHORSE", "SPECIALIST", "LIFELINE"]
 
 def _page():
@@ -32,6 +32,7 @@ def _state():
         else:
             status, cls = "STANDBY", "standby"
         agents.append({"id": aid, "division": a.get("division", "General"),
+                       "role": a.get("role", "Operator"),
                        "brain": a.get("brain", "WORKHORSE"),
                        "cadence_hours": a.get("cadence_hours", 6),
                        "autonomous": au, "enabled": en,
@@ -45,12 +46,22 @@ def _state():
     per = settings.agents_per_provider(d)
     caps = d.get("limits", {})
     total = sum(1 for a in d.get("agents", {}).values() if a.get("enabled", True))
+    reports = _list_reports()
     return {"schema": d.get("settings_schema"), "template": d.get("crew_template"),
             "repos": d.get("repos", []), "brains": brains, "agents": agents,
             "per_provider": per,
             "max_per_provider": caps.get("max_per_provider", 10),
             "max_total": caps.get("max_total_agents", 30), "total": total,
-            "note": "config view - live telemetry arrives with the scheduler bridge (S4)"}
+            "reports": reports,
+            "note": "config view - live telemetry arrives with S4 scheduler bridge"}
+
+def _list_reports():
+    reports_dir = _ROOT / "reports"
+    if not reports_dir.exists():
+        return []
+    files = sorted([f for f in reports_dir.iterdir() if f.suffix == ".md"],
+                   key=lambda f: f.stat().st_mtime, reverse=True)[:5]
+    return [{"name": f.stem, "date": f.stat().st_mtime} for f in files]
 
 def _apply_patch(patch):
     d = settings.load()
@@ -80,11 +91,22 @@ def _apply_patch(patch):
                     continue
                 if f == "division" and not isinstance(v, str):
                     continue
+                if f == "role" and v not in ["Solver","Architect","Crafter","Analyst",
+                                              "Communicator","Sentinel","Operator"]:
+                    continue
                 d["agents"][aid][f] = v
                 changed.append("agents." + aid + "." + f)
     if changed:
         settings.save(d)
     return changed
+
+def _trigger_patrol():
+    try:
+        subprocess.Popen([sys.executable, str(_ROOT / "main.py"), "patrol"],
+                        cwd=str(_ROOT), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return {"ok": True, "msg": "Patrol triggered in background."}
+    except Exception as e:
+        return {"ok": False, "msg": "Patrol failed: " + str(e)}
 
 class H(BaseHTTPRequestHandler):
     def _send(self, code, body, ctype="application/json"):
@@ -114,6 +136,9 @@ class H(BaseHTTPRequestHandler):
             if self.path == "/api/settings":
                 changed = _apply_patch(patch)
                 self._send(200, json.dumps({"ok": True, "changed": changed}))
+            elif self.path == "/api/patrol":
+                result = _trigger_patrol()
+                self._send(200, json.dumps(result))
             else:
                 self._send(404, json.dumps({"error": "not found"}))
         except Exception as e:
@@ -131,7 +156,7 @@ def serve(port=None):
         pass
     httpd = ThreadingHTTPServer(("127.0.0.1", p), H)
     print("Stratofly dashboard  ->  http://localhost:" + str(p) + "/")
-    print("(config view; live telemetry with S4 scheduler bridge). Ctrl+C to stop.")
+    print("(config view + patrol button; live telemetry with S4 scheduler bridge). Ctrl+C to stop.")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

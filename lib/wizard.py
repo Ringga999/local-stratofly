@@ -1,6 +1,6 @@
-# lib/wizard.py - Stratofly settings wizard (S2, UX-repaired). ASCII-only.
-# Integrates model_kind (badge + polite warning) and settings limits
-# (HARD per-provider, SOFT total). Every invalid input now explains itself.
+# lib/wizard.py v2 - Stratofly settings wizard (S4: role dropdown).
+# ASCII-only. Integrates model_kind (badge + polite warning), settings limits
+# (HARD per-provider, SOFT total), and ROLE capability axis (7 roles).
 from pathlib import Path
 import sys
 _ROOT = Path(__file__).resolve().parent.parent
@@ -10,6 +10,7 @@ from lib import settings
 from lib import model_kind
 
 BRAIN_NAMES = ["WORKHORSE", "SPECIALIST", "LIFELINE"]
+ROLE_NAMES = ["Solver", "Architect", "Crafter", "Analyst", "Communicator", "Sentinel", "Operator"]
 SUGGEST = [
     ("nvidia", "deepseek-ai/deepseek-coder-6.7b-instruct"),
     ("nvidia", "nvidia/nemotron-3.5-lightning-30b-a3b"),
@@ -43,7 +44,6 @@ def _ask_yes(prompt):
     return _ask(prompt + " [y/N] ").strip().lower() in ("y", "yes")
 
 def _prompt_choice(prompt, choices, back=("b", "")):
-    # choices: dict token->label. Returns canonical token, or None to go back.
     keys = list(choices.keys())
     low = {k.lower(): k for k in keys}
     bl = {x.lower() for x in back}
@@ -174,10 +174,11 @@ def step_brains(data):
 
 # ---- step 3: agents (manage/toggle) --------------------------------------
 def _agent_table(data):
-    print("  id        div          brain       cad  auto en")
+    print("  id        div          role         brain       cad  auto en")
     for aid, a in data["agents"].items():
-        print("  %-9s %-12s %-11s %3d  %3s  %2s" % (
-            aid, a.get("division", "General"), a.get("brain", "WORKHORSE"),
+        print("  %-9s %-12s %-12s %-11s %3d  %3s  %2s" % (
+            aid, a.get("division", "General"), a.get("role", "Operator"),
+            a.get("brain", "WORKHORSE"),
             a.get("cadence_hours", 6),
             "yes" if a.get("autonomous", True) else "NO",
             "yes" if a.get("enabled", True) else "NO"))
@@ -185,9 +186,9 @@ def _agent_table(data):
 def step_agents(data):
     while True:
         print("\n[Agents]"); _agent_table(data)
-        c = _prompt_choice("  t)oggle-en u)toggle-auto c)adence b)rain / k > ",
+        c = _prompt_choice("  t)oggle-en u)toggle-auto c)adence b)rain r)ole / k > ",
                            {"t": "toggle-enabled", "u": "toggle-autonomy",
-                            "c": "cadence", "b": "brain"}, back=("k", "b", ""))
+                            "c": "cadence", "b": "brain", "r": "role"}, back=("k", "b", ""))
         if c is None:
             return
         aid = _ask("  agent id: ").strip()
@@ -207,8 +208,13 @@ def step_agents(data):
                                  {"1": "WORKHORSE", "2": "SPECIALIST", "3": "LIFELINE"})
             if tok:
                 a["brain"] = BRAIN_NAMES[int(tok) - 1]; _save(data)
+        elif c == "r":
+            tok = _prompt_choice("  role 1=Solver 2=Architect 3=Crafter 4=Analyst 5=Communicator 6=Sentinel 7=Operator / b > ",
+                                 {str(i+1): ROLE_NAMES[i] for i in range(len(ROLE_NAMES))})
+            if tok:
+                a["role"] = ROLE_NAMES[int(tok) - 1]; _save(data)
 
-# ---- step 4: create agent (limit enforcement WIRED) ----------------------
+# ---- step 4: create agent (role dropdown + limit enforcement) ------------
 def step_create(data):
     print("\n[Create Agent]")
     aid = _ask("  new agent id (a-z0-9_-): ").strip()
@@ -217,11 +223,16 @@ def step_create(data):
     if aid in data["agents"]:
         print("  (id already exists)"); return
     div = _ask("  division (Enter=General): ").strip() or "General"
-    tok = _prompt_choice("  brain 1=WORKHORSE 2=SPECIALIST 3=LIFELINE / b > ",
-                         {"1": "WORKHORSE", "2": "SPECIALIST", "3": "LIFELINE"})
+    tok = _prompt_choice("  role 1=Solver 2=Architect 3=Crafter 4=Analyst 5=Communicator 6=Sentinel 7=Operator / b > ",
+                         {str(i+1): ROLE_NAMES[i] for i in range(len(ROLE_NAMES))})
     if tok is None:
         return
-    brain = BRAIN_NAMES[int(tok) - 1]
+    role = ROLE_NAMES[int(tok) - 1]
+    bv = _prompt_choice("  brain 1=WORKHORSE 2=SPECIALIST 3=LIFELINE / b > ",
+                        {"1": "WORKHORSE", "2": "SPECIALIST", "3": "LIFELINE"})
+    if bv is None:
+        return
+    brain = BRAIN_NAMES[int(bv) - 1]
     cad = _ask_int("  cadence hours (1-168, Enter=6): ", 1, 168) or 6
     auto = _ask_yes("  autonomous?")
     chain = data["brains"].get(brain, [])
@@ -232,14 +243,14 @@ def step_create(data):
         print("  -> this is the feature working, not a bug.")
         return
     data["agents"][aid] = {
-        "enabled": True, "autonomous": auto, "brain": brain,
+        "enabled": True, "autonomous": auto, "brain": brain, "role": role,
         "cadence_hours": cad, "division": div, "template_role": aid,
     }
     _save(data)
     _, warn = settings.check_total(data)
     if warn:
         print("  NOTE (SOFT limit): " + warn)
-    print("  + agent '%s' created on %s/%s" % (aid, prov, brain))
+    print("  + agent '%s' created as %s on %s/%s" % (aid, role, prov, brain))
 
 # ---- step 5: remove agent ------------------------------------------------
 def step_remove(data):
@@ -283,7 +294,7 @@ def step_notif(data):
             if v:
                 n["telegram_deliver_seconds"] = v; _save(data)
 
-# ---- step 7: reset (with on-disk backup) --------------------------------
+# ---- step 7: reset ------------------------------------------------------
 def step_reset(data):
     print("\n[Reset] restores Template #1 defaults for brains/agents/limits/notifications.")
     print("Your watched REPOS are KEPT. Backup -> settings.bak.<time>")
@@ -304,8 +315,8 @@ def step_reset(data):
 MENU = [
     ("1", "Repos", step_repos),
     ("2", "Brains (with model-type badges)", step_brains),
-    ("3", "Agents (toggle / cadence / brain)", step_agents),
-    ("4", "Create Agent  [HARD 10/API + SOFT 30 enforced]", step_create),
+    ("3", "Agents (toggle / cadence / brain / role)", step_agents),
+    ("4", "Create Agent (role dropdown) [HARD 10/API + SOFT 30]", step_create),
     ("5", "Remove Agent", step_remove),
     ("6", "Notifications", step_notif),
     ("7", "Reset to defaults (backup first)", step_reset),
@@ -315,7 +326,7 @@ def run():
     if len(sys.argv) > 1 and sys.argv[1] in ("selftest", "--selftest"):
         selftest(); return
     print("=" * 60)
-    print(" STRATOFLY SETTINGS WIZARD  (schema %d)" % settings.SCHEMA)
+    print(" STRATOFLY SETTINGS WIZARD v2 (schema %d, 7 roles)" % settings.SCHEMA)
     print("=" * 60)
     mkeys = {k for k, _l, _f in MENU}
     while True:
@@ -336,6 +347,7 @@ def run():
 
 def selftest():
     assert callable(_prompt_choice), "_prompt_choice missing"
+    print("[selftest] roles:", ROLE_NAMES)
     print("[selftest] model_kind integration on suggested models:")
     for pv, md in SUGGEST:
         print("  " + _model_line(pv, md))
@@ -344,7 +356,7 @@ def selftest():
     print("  agents_per_provider:", settings.agents_per_provider(d))
     print("  check_per_provider(nvidia):", settings.check_per_provider(d, "nvidia"))
     print("  check_total:", settings.check_total(d))
-    print("[selftest] OK - wizard logic + badges + limits + validator all loaded.")
+    print("[selftest] OK - wizard v2 + roles + badges + limits all loaded.")
 
 if __name__ == "__main__":
     run()

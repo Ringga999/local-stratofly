@@ -24,6 +24,8 @@ flex-direction:column;gap:6px}
 .btn{cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--ink);
 border-radius:6px;padding:3px 8px;font-size:12px}
 .btn:hover{border-color:var(--blue)}
+.btn-primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn-primary:hover{background:#79c0ff}
 .brain{border-left:3px solid var(--blue);padding:6px 10px;margin:6px 0;
 background:rgba(88,166,255,.06);border-radius:0 6px 6px 0}
 .badge{font-size:11px;padding:1px 6px;border-radius:20px;border:1px solid var(--line);color:var(--mut)}
@@ -33,8 +35,11 @@ background:rgba(88,166,255,.06);border-radius:0 6px 6px 0}
 .mut{color:var(--mut)}.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
 .note{font-size:12px;color:var(--mut);border-top:1px dashed var(--line);padding-top:10px;margin-top:6px}
 .repolist li{margin:2px 0}
+.report{border-left:3px solid var(--green);padding:6px 10px;margin:6px 0;
+background:rgba(63,185,80,.06);border-radius:0 6px 6px 0;font-size:12px}
 </style></head><body>
 <header><h1>&#9876; Stratofly</h1><span class="tag">localhost dashboard &middot; one crew, every free API</span>
+<button class="btn btn-primary" onclick="patrol()">Run Patrol Now</button>
 <span class="tag" id="clock"></span></header>
 <div class="wrap">
  <div class="card"><h2>Crew &middot; config status</h2><div class="grid" id="agents"></div>
@@ -42,6 +47,7 @@ background:rgba(88,166,255,.06);border-radius:0 6px 6px 0}
  <div class="card"><h2>Brains &middot; model-kind aware</h2><div id="brains"></div></div>
  <div class="card"><h2>Free-tier limits</h2><div id="limits"></div></div>
  <div class="card"><h2>Watched repos</h2><ul class="repolist mono" id="repos"></ul></div>
+ <div class="card"><h2>Recent reports</h2><div id="reports"></div></div>
 </div>
 <script>
 function $(id){return document.getElementById(id);}
@@ -54,7 +60,7 @@ async function load(){
  $("agents").innerHTML=s.agents.map(function(a){
    return '<div class="agent '+a.cls+'">'+
      '<div class="nm"><span class="dot"></span>'+esc(a.id)+'</div>'+
-     '<div class="dv">'+esc(a.division)+' &middot; '+esc(a.brain)+' &middot; '+a.cadence_hours+'h</div>'+
+     '<div class="dv">'+esc(a.division)+' &middot; '+esc(a.role||"Operator")+' &middot; '+esc(a.brain)+' &middot; '+a.cadence_hours+'h</div>'+
      '<div class="row">'+
      '<button class="btn" onclick="tog(\''+esc(a.id)+'\',\'autonomous\')">'+(a.autonomous?"auto:ON":"auto:OFF")+'</button>'+
      '<button class="btn" onclick="tog(\''+esc(a.id)+'\',\'enabled\')">'+(a.enabled?"live":"paused")+'</button>'+
@@ -76,6 +82,9 @@ async function load(){
  $("limits").innerHTML=bars+'<div style="margin-top:8px">total <span class="mono">'+s.total+"/"+s.max_total+'</span>'+
    '<div class="bar '+(tfull?"full":"")+'"><i style="width:'+Math.min(100,s.total/s.max_total*100)+'%"></i></div></div>';
  $("repos").innerHTML=(s.repos.length?s.repos:["(none)"]).map(function(r){return "<li>"+esc(r)+"</li>";}).join("");
+ $("reports").innerHTML=(s.reports.length?s.reports.map(function(r){
+   return '<div class="report"><strong>'+esc(r.name)+'</strong><br><span class="mut">'+esc(r.date)+'</span></div>';
+ }).join("")):'<span class="mut">(no reports yet)</span>';
  $("clock").textContent="updated "+new Date().toLocaleTimeString();
 }
 async function tog(id,f){
@@ -84,6 +93,12 @@ async function tog(id,f){
  if(!a)return;
  var patch={agents:{}};patch.agents[id]={};patch.agents[id][f]=!a[f];
  await api("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(patch)});
+ load();
+}
+async function patrol(){
+ if(!confirm("Trigger patrol now? This will run all enabled agents."))return;
+ var r=await api("/api/patrol",{method:"POST"});
+ alert(r.msg||"Patrol triggered. Check terminal for output.");
  load();
 }
 load();setInterval(load,5000);
