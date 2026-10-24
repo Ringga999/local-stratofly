@@ -38,3 +38,7 @@ fix_docs.py
 write_docs.py
 write_readme.py
 install_model_kind.py
+# wizard installer + backup-leak fix
+install_wizard.py
+settings.bak*
+fix_wizard_ux.py

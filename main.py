@@ -121,6 +121,8 @@ if __name__ == "__main__":
     if cmd == "brains":
         _show_brains()
         raise SystemExit(0)
+    elif cmd == "settings":
+        from lib.wizard import run as _rs; _rs()
     if cmd == "model":
         _pick_model()
         raise SystemExit(0)
