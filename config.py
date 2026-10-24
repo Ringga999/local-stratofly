@@ -9,10 +9,24 @@ PERSONAS_DIR = BASE_DIR / os.getenv("PERSONAS_DIR", "agents/personas")
 REPORTS_DIR = BASE_DIR / "reports"
 DB_PATH = BASE_DIR / "memory.sqlite3"
 
+# --- Secrets still from .env (never committed) ---
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
-REPOS = [r.strip() for r in os.getenv("REPOS", "").split(",") if r.strip()]
+
+# --- Settings layer delegation (S2 milestone) ---
+# Try to load from settings.json first; fall back to .env for backward compat.
+try:
+    from lib import settings as _settings
+    _data = _settings.load()
+    REPOS = _data.get("repos", [])
+    _brains_raw = _data.get("brains", {})
+    _settings_loaded = True
+except Exception:
+    # Fallback to .env (legacy)
+    REPOS = [r.strip() for r in os.getenv("REPOS", "").split(",") if r.strip()]
+    _brains_raw = {}
+    _settings_loaded = False
 
 # --- Provider Hub -----------------------------------------------------
 PROVIDERS = {
@@ -31,9 +45,12 @@ HOUSE_MODELS = {
     "mistral": "mistral-large-latest",
 }
 
-def _parse_chain(spec: str):
+def _parse_chain(spec):
+    """Parse brain chain spec: "provider/model[,provider/model,...]" -> [(prov,model),...]"""
     chain = []
-    for part in spec.split(","):
+    if not spec:
+        return chain
+    for part in str(spec).split(","):
         part = part.strip()
         if not part or "/" not in part:
             continue
@@ -41,22 +58,32 @@ def _parse_chain(spec: str):
         chain.append((prov.strip(), model.strip()))
     return chain
 
-# Brain names renamed 22 Oct 2026: WORKHORSE / SPECIALIST / LIFELINE.
-# Env fallback keeps old BRAIN_PRIMARY/EXPERT/EMERGENCY keys alive until
-# settings.json absorbs this layer (Friday). User-facing strings: English.
-_BRAIN_SPEC = {
-    "WORKHORSE":  os.getenv("BRAIN_WORKHORSE")  or os.getenv("BRAIN_PRIMARY",   f"nvidia/{HOUSE_MODELS['nvidia']}"),
-    "SPECIALIST": os.getenv("BRAIN_SPECIALIST") or os.getenv("BRAIN_EXPERT",    f"nvidia/{HOUSE_MODELS['nvidia']}"),
-    "LIFELINE":   os.getenv("BRAIN_LIFELINE")   or os.getenv("BRAIN_EMERGENCY", f"nvidia/{HOUSE_MODELS['nvidia']}"),
-}
-BRAINS = {name: (_parse_chain(spec) or [("nvidia", HOUSE_MODELS["nvidia"])])
-          for name, spec in _BRAIN_SPEC.items()}
+# Build BRAINS dict: from settings.json if available, else from .env fallback
+if _settings_loaded and _brains_raw:
+    BRAINS = {name: _parse_chain(spec) if isinstance(spec, str) else 
+              [(m["provider"], m["model"]) for m in spec] if isinstance(spec, list) and spec and isinstance(spec[0], dict)
+              else [("nvidia", HOUSE_MODELS["nvidia"])]
+              for name, spec in _brains_raw.items()}
+else:
+    # Legacy .env fallback
+    _legacy = {
+        "WORKHORSE":  os.getenv("BRAIN_WORKHORSE")  or os.getenv("BRAIN_PRIMARY"),
+        "SPECIALIST": os.getenv("BRAIN_SPECIALIST") or os.getenv("BRAIN_EXPERT"),
+        "LIFELINE":   os.getenv("BRAIN_LIFELINE")   or os.getenv("BRAIN_EMERGENCY"),
+    }
+    BRAINS = {name: (_parse_chain(spec) or [("nvidia", HOUSE_MODELS["nvidia"])])
+              for name, spec in _legacy.items()}
 
-AGENT_BRAIN = {
-    "scout": "WORKHORSE", "scribe": "WORKHORSE", "tester": "WORKHORSE",
-    "herald": "WORKHORSE", "diplomat": "WORKHORSE", "release": "WORKHORSE",
-    "triage": "SPECIALIST", "sentinel": "SPECIALIST", "bridge": "SPECIALIST", "medic": "SPECIALIST",
-}
+# Agent-to-brain mapping (from settings if available, else hardcoded default)
+if _settings_loaded and _data.get("agents"):
+    AGENT_BRAIN = {aid: a.get("brain", "WORKHORSE") for aid, a in _data["agents"].items()}
+else:
+    AGENT_BRAIN = {
+        "scout": "WORKHORSE", "scribe": "WORKHORSE", "tester": "WORKHORSE",
+        "herald": "WORKHORSE", "diplomat": "WORKHORSE", "release": "WORKHORSE",
+        "triage": "SPECIALIST", "sentinel": "SPECIALIST", "bridge": "SPECIALIST", "medic": "SPECIALIST",
+    }
+
 DEFAULT_BRAIN = "WORKHORSE"
 
 def provider_key(provider: str) -> str:
