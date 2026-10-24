@@ -48,3 +48,5 @@ _journal_draft/
 # S3 installer(s)
 install_web.py
 install_web2.py
+# S4 installer
+install_s4.py
