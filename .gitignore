@@ -42,3 +42,6 @@ install_model_kind.py
 install_wizard.py
 settings.bak*
 fix_wizard_ux.py
+# doc installer + journal draft (not part of engine)
+install_specs.py
+_journal_draft/
