@@ -26,6 +26,7 @@ border-radius:6px;padding:3px 8px;font-size:12px}
 .btn:hover{border-color:var(--blue)}
 .btn-primary{background:var(--blue);border-color:var(--blue);color:#fff}
 .btn-primary:hover{background:#79c0ff}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
 .brain{border-left:3px solid var(--blue);padding:6px 10px;margin:6px 0;
 background:rgba(88,166,255,.06);border-radius:0 6px 6px 0}
 .badge{font-size:11px;padding:1px 6px;border-radius:20px;border:1px solid var(--line);color:var(--mut)}
@@ -37,9 +38,13 @@ background:rgba(88,166,255,.06);border-radius:0 6px 6px 0}
 .repolist li{margin:2px 0}
 .report{border-left:3px solid var(--green);padding:6px 10px;margin:6px 0;
 background:rgba(63,185,80,.06);border-radius:0 6px 6px 0;font-size:12px}
+.logbox{background:var(--bg);border:1px solid var(--line);border-radius:6px;
+padding:10px;max-height:300px;overflow-y:auto;font-family:ui-monospace,Menlo,Consolas,monospace;
+font-size:11px;white-space:pre-wrap;word-break:break-all;line-height:1.4}
+.running{color:var(--amber);font-weight:600}
 </style></head><body>
 <header><h1>&#9876; Stratofly</h1><span class="tag">localhost dashboard &middot; one crew, every free API</span>
-<button class="btn btn-primary" onclick="patrol()">Run Patrol Now</button>
+<button class="btn btn-primary" id="patrolBtn" onclick="patrol()">Run Patrol Now</button>
 <span class="tag" id="clock"></span></header>
 <div class="wrap">
  <div class="card"><h2>Crew &middot; config status</h2><div class="grid" id="agents"></div>
@@ -48,6 +53,7 @@ background:rgba(63,185,80,.06);border-radius:0 6px 6px 0;font-size:12px}
  <div class="card"><h2>Free-tier limits</h2><div id="limits"></div></div>
  <div class="card"><h2>Watched repos</h2><ul class="repolist mono" id="repos"></ul></div>
  <div class="card"><h2>Recent reports</h2><div id="reports"></div></div>
+ <div class="card"><h2>Patrol log</h2><div class="logbox mono" id="patrolLog">Loading...</div></div>
 </div>
 <script>
 function $(id){return document.getElementById(id);}
@@ -86,6 +92,7 @@ async function load(){
    return '<div class="report"><strong>'+esc(r.name)+'</strong><br><span class="mut">'+esc(r.date)+'</span></div>';
  }).join("")):'<span class="mut">(no reports yet)</span>';
  $("clock").textContent="updated "+new Date().toLocaleTimeString();
+ loadPatrolLog();
 }
 async function tog(id,f){
  var s=await api("/api/state");var a=null;
@@ -96,10 +103,44 @@ async function tog(id,f){
  load();
 }
 async function patrol(){
+ var btn=$("patrolBtn");
+ if(btn.disabled)return;
  if(!confirm("Trigger patrol now? This will run all enabled agents."))return;
- var r=await api("/api/patrol",{method:"POST"});
- alert(r.msg||"Patrol triggered. Check terminal for output.");
- load();
+ btn.disabled=true;
+ btn.textContent="Starting...";
+ try{
+   var r=await api("/api/patrol",{method:"POST"});
+   if(r.ok){
+     btn.textContent="Patrol Running...";
+     alert(r.msg||"Patrol started. Check log below.");
+   }else{
+     alert("Error: "+r.msg);
+     btn.disabled=false;
+     btn.textContent="Run Patrol Now";
+   }
+ }catch(e){
+   alert("Failed to start patrol: "+e.message);
+   btn.disabled=false;
+   btn.textContent="Run Patrol Now";
+ }
+ loadPatrolLog();
 }
-load();setInterval(load,5000);
+async function loadPatrolLog(){
+ var s=await api("/api/state");
+ var btn=$("patrolBtn");
+ if(s.patrol_running){
+   if(!btn.disabled)btn.disabled=true;
+   if(btn.textContent!="Patrol Running...")btn.textContent="Patrol Running...";
+ }else{
+   if(btn.disabled && btn.textContent=="Patrol Running..."){
+     btn.disabled=false;
+     btn.textContent="Run Patrol Now";
+   }
+ }
+ var log=await api("/api/patrol/log");
+ $("patrolLog").textContent=log.log||"(no log yet)";
+}
+load();
+setInterval(load,5000);
+setInterval(loadPatrolLog,1000);
 </script></body></html>
