@@ -56,3 +56,6 @@ lib/patrol_log.txt
 # ask command installer
 install_ask.py
 lib/ask_handler.py
+# full-app installer + server backup
+install_full.py
+lib/api_server.py.bak

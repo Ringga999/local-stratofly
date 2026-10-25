@@ -1,63 +1,302 @@
-import json, threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from lib import memory
+# lib/api_server.py - Stratofly control-room server (UNIFIED, extended).
+# Single source of truth for the localhost app. Serves lib/app.html at / and
+# a JSON API under /api/*. ThreadingHTTPServer so LLM calls never freeze UI.
+# /api/state is rebuilt from settings (config truth) merged with memory (live).
+# Backwards-compatible: /api/state, /api/activity, /api/report/<id>, /health
+# keep working. main.py's _serve() calls run(port) unchanged.
+import json, os, sys, time, threading, subprocess
+from pathlib import Path
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+from lib import memory, settings, model_kind, ask_handler, scheduler, mock
+from lib import onboard, persona
 from config import REPORTS_DIR
 
-class Handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        if self.path == '/api/state':
-            agents = memory.get_all_agent_states()
-            if not agents:
-                agents = [{"agent": a, "state": "idle", "action": "-", "target": "-",
-                           "bubble": "menunggu…", "report_id": -1, "since_ts": 0}
-                          for a in ['scout','triage','sentinel','scribe','tester',
-                                    'medic','release','bridge','herald','diplomat']]
-            self._send_json({"schema": 1, "online": True, "ts": __import__('time').time(), "agents": agents})
-        
-        elif self.path.startswith('/api/activity'):
-            limit = 50
-            if 'limit=' in self.path:
-                try:
-                    limit = int(self.path.split('limit=')[1].split('&')[0])
-                except:
-                    pass
-            events = memory.recent_events(limit)
-            self._send_json({"schema": 1, "events": events})
-        
-        elif self.path.startswith('/api/report/'):
-            try:
-                rid = int(self.path.split('/api/report/')[1])
-                f = REPORTS_DIR / f"report_{rid}.md"
-                if f.exists():
-                    self._send_json({"schema": 1, "id": rid, "markdown": f.read_text(encoding="utf-8")})
-                else:
-                    self._send_json({"error": "report not found"}, 404)
-            except:
-                self._send_json({"error": "invalid id"}, 400)
-        
-        elif self.path == '/health':
-            self._send_json({"status": "ok"})
-        
-        else:
-            self._send_json({"error": "not found"}, 404)
-    
-    def _send_json(self, data, status=200):
-        self.send_response(status)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
-        self.wfile.write(json.dumps(data, ensure_ascii=False).encode('utf-8'))
-    
-    def log_message(self, format, *args):
-        pass  # senyap
+HERE = Path(__file__).resolve().parent
+APP_HTML = HERE / "app.html"
+DEFAULT_PORT = 8765
+BRAIN_NAMES = ["WORKHORSE", "SPECIALIST", "LIFELINE"]
+ROLE_NAMES = ["Solver", "Architect", "Crafter", "Analyst", "Communicator", "Sentinel", "Operator"]
+ALLOWED_AGENT = {"enabled", "autonomous", "cadence_hours", "brain", "division", "role"}
 
-def run(port=8765):
-    server = HTTPServer(('127.0.0.1', port), Handler)
-    print(f"🌉 API server hidup di http://127.0.0.1:{port}")
-    print("   Endpoint: /api/state · /api/activity · /api/report/<id> · /health")
-    print("   Tekan Ctrl+C untuk berhenti.")
+_MOCK_STOP = threading.Event()
+_MOCK_STOP.set()  # start stopped
+_MOCK_THREAD = None
+_PATROL_LOCK = threading.Lock()
+
+def _page():
+    return APP_HTML.read_text(encoding="utf-8")
+
+def _env_status():
+    d = onboard._read_env()
+    return {"nvidia": bool(d.get("NVIDIA_API_KEY")), "github": bool(d.get("GITHUB_TOKEN"))}
+
+def _state():
+    cfg = settings.load()
+    live = {}
     try:
-        server.serve_forever()
+        for e in memory.get_all_agent_states():
+            live[e.get("agent")] = e
+    except Exception:
+        live = {}
+    agents = []
+    for aid, a in (cfg.get("agents") or {}).items():
+        lv = live.get(aid, {})
+        agents.append({
+            "id": aid,
+            "division": a.get("division", "General"),
+            "role": a.get("role", "Operator"),
+            "brain": a.get("brain", "WORKHORSE"),
+            "cadence_hours": a.get("cadence_hours", 6),
+            "autonomous": bool(a.get("autonomous", True)),
+            "enabled": bool(a.get("enabled", True)),
+            "state": (lv.get("state") or "idle"),
+            "action": lv.get("action", "-"),
+            "target": lv.get("target", "-"),
+            "bubble": lv.get("bubble", "waiting..."),
+            "since_ts": lv.get("since_ts", 0),
+        })
+    per = settings.agents_per_provider(cfg)
+    caps = cfg.get("limits", {})
+    total = sum(1 for a in (cfg.get("agents") or {}).values() if a.get("enabled", True))
+    return {"schema": 2, "online": True, "ts": time.time(), "agents": agents,
+            "per_provider": per, "max_per_provider": caps.get("max_per_provider", 10),
+            "max_total": caps.get("max_total_agents", 30)}
+
+def _apply_patch(patch):
+    d = settings.load()
+    changed = []
+    if "repos" in patch and isinstance(patch["repos"], list):
+        d["repos"] = [r for r in patch["repos"] if isinstance(r, str) and "/" in r]
+        changed.append("repos")
+    if "limits" in patch and isinstance(patch["limits"], dict):
+        for k in ("max_total_agents", "max_per_provider"):
+            v = patch["limits"].get(k)
+            if isinstance(v, int) and v >= 1:
+                d["limits"][k] = v
+                changed.append("limits." + k)
+    if "agents" in patch and isinstance(patch["agents"], dict):
+        for aid, fields in patch["agents"].items():
+            if aid not in d.get("agents", {}) or not isinstance(fields, dict):
+                continue
+            for f, v in fields.items():
+                if f not in ALLOWED_AGENT:
+                    continue
+                if f == "cadence_hours" and not (isinstance(v, int) and 1 <= v <= 168):
+                    continue
+                if f == "brain" and v not in BRAIN_NAMES:
+                    continue
+                if f == "role" and v not in ROLE_NAMES:
+                    continue
+                if f in ("enabled", "autonomous") and not isinstance(v, bool):
+                    continue
+                if f == "division" and not isinstance(v, str):
+                    continue
+                d["agents"][aid][f] = v
+                changed.append("agents." + aid + "." + f)
+    if changed:
+        settings.save(d)
+    return changed
+
+def _add_agent(body):
+    d = settings.load()
+    aid = (body.get("id") or "").strip()
+    if not aid or not all(c.isalnum() or c in "_-" for c in aid):
+        return {"ok": False, "msg": "invalid id (a-z0-9_-)"}
+    if aid in d.get("agents", {}):
+        return {"ok": False, "msg": "id already exists"}
+    role = body.get("role") if body.get("role") in ROLE_NAMES else "Operator"
+    brain = body.get("brain") if body.get("brain") in BRAIN_NAMES else "WORKHORSE"
+    cad = body.get("cadence_hours")
+    cad = cad if isinstance(cad, int) and 1 <= cad <= 168 else 6
+    chain = d.get("brains", {}).get(brain, [])
+    prov = chain[0].get("provider", "nvidia") if chain else "nvidia"
+    allowed, reason = settings.check_per_provider(d, prov)
+    if not allowed:
+        return {"ok": False, "msg": "REFUSED (HARD limit): " + reason}
+    d.setdefault("agents", {})[aid] = {
+        "enabled": True, "autonomous": bool(body.get("autonomous", True)),
+        "brain": brain, "role": role, "cadence_hours": cad,
+        "division": (body.get("division") or "General"), "template_role": aid,
+    }
+    settings.save(d)
+    _, warn = settings.check_total(d)
+    msg = "+ agent '" + aid + "' as " + role + " on " + prov + "/" + brain
+    if warn:
+        msg += "  |  NOTE (SOFT): " + warn
+    return {"ok": True, "msg": msg}
+
+def _remove_agent(body):
+    d = settings.load()
+    aid = (body.get("id") or "").strip()
+    if aid in d.get("agents", {}):
+        del d["agents"][aid]
+        settings.save(d)
+        return {"ok": True, "msg": "removed " + aid}
+    return {"ok": False, "msg": "no such agent"}
+
+def _onboard(body):
+    key = (body.get("key") or "").strip()
+    if not key:
+        return {"ok": False, "msg": "empty key"}
+    d = onboard._read_env()
+    d["NVIDIA_API_KEY"] = key
+    onboard._write_env(d)
+    return {"ok": True, "msg": "NVIDIA key saved to .env"}
+
+def _ask(body):
+    prompt = (body.get("prompt") or "").strip()
+    agent = (body.get("agent_id") or "scout").strip()
+    if not prompt:
+        return {"ok": False, "answer": "", "error": "empty prompt"}
+    try:
+        ans = ask_handler.ask(prompt, agent_id=agent)
+        return {"ok": True, "answer": ans}
+    except Exception as e:
+        return {"ok": False, "answer": "", "error": str(e)}
+
+def _patrol_async():
+    if not _PATROL_LOCK.acquire(blocking=False):
+        return {"ok": False, "msg": "patrol already running"}
+    def _job():
+        try:
+            scheduler.run_once()
+        except Exception:
+            pass
+        finally:
+            _PATROL_LOCK.release()
+    threading.Thread(target=_job, daemon=True).start()
+    return {"ok": True, "msg": "patrol dispatched in background"}
+
+def _mock_loop():
+    import random
+    agents = list(mock.MOCK_AGENTS.keys())
+    states = mock.STATES
+    while not _MOCK_STOP.is_set():
+        aid = random.choice(agents)
+        st = random.choice(states)
+        ac = random.choice(mock.MOCK_AGENTS[aid]["actions"])
+        bub = mock.MOCK_AGENTS[aid]["emoji"] + " " + aid + " is " + ac + "..."
+        try:
+            memory.update_agent_state(aid, st, ac, "-", bub, -1)
+            memory.log_event(aid, st, ac, "-", bub, -1)
+        except Exception:
+            pass
+        _MOCK_STOP.wait(3)
+
+def _mock_start():
+    global _MOCK_THREAD
+    if not _MOCK_STOP.is_set():
+        return {"ok": False, "msg": "mock already running"}
+    _MOCK_STOP.clear()
+    _MOCK_THREAD = threading.Thread(target=_mock_loop, daemon=True)
+    _MOCK_THREAD.start()
+    return {"ok": True, "msg": "mock running (offline demo mode)"}
+
+def _mock_stop():
+    _MOCK_STOP.set()
+    return {"ok": True, "msg": "mock stopped"}
+
+class Handler(BaseHTTPRequestHandler):
+    def _send_json(self, data, status=200):
+        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+    def _send_html(self, html, status=200):
+        body = html.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+    def _read_body(self):
+        n = int(self.headers.get("Content-Length", 0) or 0)
+        raw = self.rfile.read(n).decode("utf-8") if n else "{}"
+        try:
+            return json.loads(raw)
+        except Exception:
+            return {}
+    def do_GET(self):
+        try:
+            p = self.path
+            if p == "/" or p.startswith("/index") or p.startswith("/app"):
+                self._send_html(_page())
+            elif p == "/api/state":
+                self._send_json(_state())
+            elif p == "/api/settings":
+                self._send_json(settings.load())
+            elif p == "/api/env-status":
+                self._send_json(_env_status())
+            elif p.startswith("/api/activity"):
+                limit = 50
+                if "limit=" in p:
+                    try:
+                        limit = int(p.split("limit=")[1].split("&")[0])
+                    except Exception:
+                        pass
+                self._send_json({"schema": 2, "events": memory.recent_events(limit)})
+            elif p.startswith("/api/report/"):
+                try:
+                    rid = int(p.split("/api/report/")[1])
+                    f = REPORTS_DIR / ("report_" + str(rid) + ".md")
+                    if f.exists():
+                        self._send_json({"schema": 2, "id": rid, "markdown": f.read_text(encoding="utf-8")})
+                    else:
+                        self._send_json({"error": "report not found"}, 404)
+                except Exception:
+                    self._send_json({"error": "invalid id"}, 400)
+            elif p == "/health":
+                self._send_json({"status": "ok"})
+            else:
+                self._send_json({"error": "not found"}, 404)
+        except Exception as e:
+            self._send_json({"error": str(e)}, 500)
+    def do_POST(self):
+        try:
+            p = self.path
+            b = self._read_body()
+            if p == "/api/settings":
+                self._send_json({"ok": True, "changed": _apply_patch(b)})
+            elif p == "/api/agent/add":
+                self._send_json(_add_agent(b))
+            elif p == "/api/agent/remove":
+                self._send_json(_remove_agent(b))
+            elif p == "/api/onboard":
+                self._send_json(_onboard(b))
+            elif p == "/api/ask":
+                self._send_json(_ask(b))
+            elif p == "/api/patrol":
+                self._send_json(_patrol_async())
+            elif p == "/api/mock/start":
+                self._send_json(_mock_start())
+            elif p == "/api/mock/stop":
+                self._send_json(_mock_stop())
+            else:
+                self._send_json({"error": "not found"}, 404)
+        except Exception as e:
+            self._send_json({"error": str(e)}, 400)
+    def log_message(self, format, *args):
+        pass  # silent during demo
+
+def run(port=DEFAULT_PORT):
+    srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    print("Stratofly control room  ->  http://localhost:" + str(port) + "/")
+    print("  GET  /api/state /api/settings /api/env-status /api/activity /api/report/<id> /health")
+    print("  POST /api/ask /api/patrol /api/settings /api/agent/add /api/agent/remove /api/onboard /api/mock/start /api/mock/stop")
+    print("  Ctrl+C to stop.")
+    try:
+        srv.serve_forever()
     except KeyboardInterrupt:
-        print("\n API server berhenti.")
-        server.server_close()
+        print("")
+        print("stopped.")
+        srv.server_close()
+
+if __name__ == "__main__":
+    run()
