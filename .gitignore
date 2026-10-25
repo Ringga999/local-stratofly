@@ -50,3 +50,9 @@ install_web.py
 install_web2.py
 # S4 installer
 install_s4.py
+# patrol log
+fix_patrol.py
+lib/patrol_log.txt
+# ask command installer
+install_ask.py
+lib/ask_handler.py

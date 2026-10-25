@@ -151,6 +151,16 @@ if __name__ == "__main__":
         _reload_env()
     if cmd == "preflight":
         raise SystemExit(0 if preflight() else 1)
+    if cmd == "ask":
+        from lib.ask_handler import ask
+        prompt = " ".join(sys.argv[2:]) if len(sys.argv) > 2 else ""
+        if not prompt:
+            print("Usage: python main.py ask <prompt> [--agent <id>]")
+            sys.exit(1)
+        agent = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] == "--agent" and len(sys.argv) > 4 else "scout"
+        print("Asking", agent + "...")
+        result = ask(prompt, agent_id=agent)
+        print(result)
     if cmd == "patrol":
         if not preflight():
             raise SystemExit(1)
