@@ -1,0 +1,199 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stratofly - Control Room</title>
+<style>
+:root{--bg:#0e1116;--card:#161b22;--ink:#e6edf3;--mut:#8b949e;--line:#30363d;
+--green:#3fb950;--amber:#d29922;--grey:#6e7681;--blue:#58a6ff;--red:#f85149}
+@media(prefers-color-scheme:light){:root{--bg:#f6f8fa;--card:#fff;--ink:#1f2328;
+--mut:#656d76;--line:#d0d7de}}
+*{box-sizing:border-box}body{margin:0;font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{padding:16px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:5}
+header h1{font-size:18px;margin:0}header .tag{color:var(--mut);font-size:12px}
+.wrap{padding:22px;max-width:1180px;margin:0 auto;display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+.card h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);margin:0 0 12px}
+.full{grid-column:1/-1}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.agent{border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.agent .nm{font-weight:600}.agent .dv{color:var(--mut);font-size:11px}
+.agent .bb{font-size:11px;color:var(--mut);min-height:14px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px;background:var(--grey)}
+.s-working .dot{background:var(--green)}.s-patrol .dot{background:var(--blue)}
+.s-alert .dot{background:var(--red)}.s-coffee .dot{background:var(--amber)}.s-idle .dot{background:var(--grey)}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11px}
+.btn{cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:6px;padding:3px 8px;font-size:11px}
+.btn:hover{border-color:var(--blue)}.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--blue);border-color:var(--blue);color:#fff}.btn-primary:hover{background:#79c0ff}
+.btn-danger{color:var(--red);border-color:var(--red)}
+.brain{border-left:3px solid var(--blue);padding:6px 10px;margin:6px 0;background:rgba(88,166,255,.06);border-radius:0 6px 6px 0;font-size:12px}
+.badge{font-size:10px;padding:1px 6px;border-radius:20px;border:1px solid var(--line);color:var(--mut)}
+.bar{height:8px;background:var(--line);border-radius:6px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--green)}.bar.full i{background:var(--red)}
+.mut{color:var(--mut)}.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+input,select,textarea{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font:inherit;margin:3px 0}
+textarea{min-height:64px;resize:vertical}
+label{font-size:11px;color:var(--mut);display:block;margin-top:8px}
+.chk{display:flex;align-items:center;gap:6px}.chk input{width:auto;margin:0}
+.evt{font-size:11px;padding:4px 0;border-bottom:1px dashed var(--line);color:var(--mut)}
+.evt b{color:var(--ink)}
+.toast{position:fixed;right:18px;bottom:18px;max-width:340px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:8px;padding:10px 14px;font-size:12px;box-shadow:0 6px 24px rgba(0,0,0,.4);opacity:0;transform:translateY(8px);transition:.25s;z-index:9}
+.toast.show{opacity:1;transform:none}.toast.err{border-left-color:var(--red)}.toast.ok{border-left-color:var(--green)}
+.answer{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px;margin-top:8px;white-space:pre-wrap;word-break:break-word;font-size:13px;min-height:20px}
+.repolist{list-style:none;margin:0;padding:0}.repolist li{display:flex;gap:6px;align-items:center;margin:3px 0}
+.repolist li span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.statusline{font-size:12px;margin:2px 0}.ok{color:var(--green)}.no{color:var(--red)}
+</style></head><body>
+<header><h1>&#9876; Stratofly</h1><span class="tag">control room &middot; one crew, every free API</span>
+<span class="tag" id="online">&#9679; connecting…</span>
+<button class="btn btn-primary" data-act="patrol">Run Patrol</button>
+<button class="btn" id="mockBtn" data-act="mock-toggle">Mock: OFF</button>
+<span class="tag" id="clock"></span></header>
+<div class="wrap">
+
+ <div class="card full"><h2>Live crew &middot; real state</h2><div class="grid" id="crewGrid"></div></div>
+
+ <div class="card"><h2>Onboard &middot; API key</h2>
+   <div class="statusline" id="envStatus">checking…</div>
+   <label>NVIDIA NIM key (nvapi-…)</label>
+   <input type="password" id="apiKey" placeholder="paste key, then Save">
+   <button class="btn btn-primary" data-act="onboard">Save key</button>
+   <div class="mut" style="font-size:11px;margin-top:6px">Key is written to .env (local, never committed). Get one free at build.nvidia.com.</div>
+ </div>
+
+ <div class="card"><h2>Add agent &middot; role = capability</h2>
+   <form id="addForm">
+     <label>id</label><input id="aId" placeholder="e.g. reviewer" required>
+     <label>division</label><input id="aDiv" placeholder="Engineering" value="General">
+     <label>role</label><select id="aRole"></select>
+     <label>brain</label><select id="aBrain"></select>
+     <label>cadence hours</label><input id="aCad" type="number" min="1" max="168" value="6">
+     <div class="chk"><input type="checkbox" id="aAuto" checked><label for="aAuto" style="margin:0">autonomous (ARMED)</label></div>
+     <button class="btn btn-primary" type="submit" style="margin-top:8px">Create agent</button>
+   </form>
+ </div>
+
+ <div class="card"><h2>Command the crew &middot; free prompt</h2>
+   <form id="askForm">
+     <label>agent</label><select id="askAgent"></select>
+     <label>prompt</label><textarea id="askText" placeholder="e.g. Summarize the 3 newest open issues" required></textarea>
+     <button class="btn btn-primary" type="submit">Send</button>
+   </form>
+   <div class="answer mut" id="askOut">Response appears here…</div>
+ </div>
+
+ <div class="card"><h2>Brains &middot; model-kind aware</h2><div id="brainsBox"></div></div>
+ <div class="card"><h2>Free-tier limits</h2><div id="limitsBox"></div></div>
+
+ <div class="card"><h2>Watched repos</h2>
+   <ul class="repolist" id="reposBox"></ul>
+   <form id="repoForm" style="display:flex;gap:6px;margin-top:6px">
+     <input id="repoAdd" placeholder="owner/name" style="flex:1">
+     <button class="btn" type="submit">+ add</button>
+   </form>
+ </div>
+
+ <div class="card full"><h2>Activity feed</h2><div id="activityBox" class="mut">loading…</div></div>
+
+</div>
+<div class="toast" id="toast"></div>
+<script>
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+async function jget(u){var r=await fetch(u);if(!r.ok)throw new Error(u+" -> "+r.status);return r.json();}
+async function jpost(u,body){var r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})});return r.json();}
+function toast(msg,kind){var t=$("toast");t.textContent=msg;t.className="toast show "+(kind||"");setTimeout(function(){t.className="toast";},3200);}
+var CFG={roles:[],brains:{},agents:{},limits:{},repos:[]};
+var STATE={agents:[]};
+
+async function loadSettings(){
+  var s=await jget("/api/settings");
+  CFG.roles=Object.keys(s.roles||{});
+  CFG.brains=s.brains||{};CFG.agents=s.agents||{};CFG.limits=s.limits||{};CFG.repos=s.repos||[];
+  fillSelect($("aRole"),CFG.roles);
+  fillSelect($("aBrain"),Object.keys(CFG.brains));
+  fillSelect($("askAgent"),Object.keys(CFG.agents));
+  renderBrains();renderLimits();renderRepos();
+}
+function fillSelect(sel,items){sel.innerHTML="";for(var i=0;i<items.length;i++){var o=document.createElement("option");o.value=items[i];o.textContent=items[i];sel.appendChild(o);}}
+
+async function loadState(){
+  var s=await jget("/api/state");STATE=s;$("online").innerHTML=s.online?'<span class="ok">&#9679; online</span>':'<span class="no">&#9679; offline</span>';$("clock").textContent="updated "+new Date().toLocaleTimeString();renderCrew(s.agents||[]);
+}
+async function loadActivity(){
+  try{var a=await jget("/api/activity?limit=12");var ev=a.events||[];
+    $("activityBox").innerHTML=ev.length?ev.map(function(e){return '<div class="evt"><b>'+esc(e.agent||"?")+'</b> '+esc(e.state||"")+' &middot; '+esc(e.action||"")+' &middot; '+esc(e.bubble||"")+'</div>';}).join(""):'<span class="mut">no events yet</span>';
+  }catch(e){$("activityBox").textContent="activity unavailable";}
+}
+async function loadEnv(){
+  try{var e=await jget("/api/env-status");
+    $("envStatus").innerHTML='NVIDIA key: '+(e.nvidia?'<span class="ok">set</span>':'<span class="no">missing</span>')+' &middot; GitHub: '+(e.github?'<span class="ok">token</span>':'<span class="mut">tokenless</span>');
+  }catch(e){$("envStatus").textContent="env status unavailable";}
+}
+
+function renderCrew(list){
+  $("crewGrid").innerHTML=list.map(function(a){
+    var st=(a.state||"idle").toLowerCase();
+    return '<div class="agent s-'+esc(st)+'">'+
+      '<div class="nm"><span class="dot"></span>'+esc(a.id)+'</div>'+
+      '<div class="dv">'+esc(a.division||"General")+' &middot; '+esc(a.role||"Operator")+' &middot; '+esc(a.brain||"WORKHORSE")+' &middot; '+(a.cadence_hours||6)+'h</div>'+
+      '<div class="bb">'+esc(a.bubble||"waiting…")+'</div>'+
+      '<div class="row">'+
+        '<button class="btn" data-act="toggle-auto" data-id="'+esc(a.id)+'">'+(a.autonomous?"auto:ON":"auto:OFF")+'</button>'+
+        '<button class="btn" data-act="toggle-en" data-id="'+esc(a.id)+'">'+(a.enabled?"live":"paused")+'</button>'+
+        '<button class="btn btn-danger" data-act="rm-agent" data-id="'+esc(a.id)+'">x</button>'+
+      '</div></div>';
+  }).join("")||'<span class="mut">no agents configured</span>';
+}
+function renderBrains(){
+  $("brainsBox").innerHTML=Object.keys(CFG.brains).map(function(k){
+    var ch=CFG.brains[k]||[];
+    var inner=ch.length?ch.map(function(e){return '<span class="mono">'+esc(e.provider)+"/"+esc(e.model)+'</span> <span class="badge">'+esc(e.kind||"text")+'</span>';}).join("<br>"):'<span class="mut">(empty)</span>';
+    return '<div class="brain"><strong>'+esc(k)+'</strong> <span class="mut">('+ch.length+')</span><br>'+inner+'</div>';
+  }).join("")||'<span class="mut">no brains</span>';
+}
+function renderLimits(){
+  var per=STATE.per_provider||{};var mx=CFG.limits.max_per_provider||10;var mt=CFG.limits.max_total_agents||30;var tot=0;
+  for(var k in CFG.agents){if(CFG.agents[k].enabled!==false)tot++;}
+  var bars=Object.keys(per).map(function(p){var n=per[p];var full=n>=mx;
+    return '<div>'+esc(p)+' <span class="mono">'+n+"/"+mx+'</span><div class="bar '+(full?"full":"")+'"><i style="width:'+Math.min(100,n/mx*100)+'%"></i></div></div>';}).join("");
+  var tfull=tot>=mt;
+  $("limitsBox").innerHTML=(bars||'<span class="mut">no providers in use</span>')+'<div style="margin-top:8px">total <span class="mono">'+tot+"/"+mt+'</span><div class="bar '+(tfull?"full":"")+'"><i style="width:'+Math.min(100,tot/mt*100)+'%"></i></div></div>';
+}
+function renderRepos(){
+  $("reposBox").innerHTML=(CFG.repos.length?CFG.repos:["(none)"]).map(function(r,i){
+    if(r==="(none)")return '<li><span class="mut">(none)</span></li>';
+    return '<li><span class="mono">'+esc(r)+'</span><button class="btn btn-danger" data-act="rm-repo" data-id="'+esc(r)+'">x</button></li>';}).join("");
+}
+
+async function act(a,id,btn){
+  try{
+    if(a==="patrol"){var r=await jpost("/api/patrol",{});toast(r.msg||"patrol started","ok");return;}
+    if(a==="mock-toggle"){var on=btn.textContent.indexOf("ON")>=0;var r=await jpost(on?"/api/mock/stop":{"/api/mock/start":0}["/api/mock/start"]?"/api/mock/start":"/api/mock/start",{});toast(r.msg||(on?"mock stopped":"mock running"),"ok");btn.textContent="Mock: "+(on?"OFF":"ON");return;}
+    if(a==="onboard"){var key=$("apiKey").value.trim();if(!key){toast("paste a key first","err");return;}var r=await jpost("/api/onboard",{key:key});toast(r.msg||"saved",r.ok?"ok":"err");if(r.ok){$("apiKey").value="";loadEnv();}return;}
+    if(a==="toggle-auto"||a==="toggle-en"){var f=a==="toggle-auto"?"autonomous":"enabled";var cur=null;for(var i=0;i<STATE.agents.length;i++){if(STATE.agents[i].id===id){cur=STATE.agents[i];break;}}if(!cur)return;var p={agents:{}};p.agents[id]={};p.agents[id][f]=!cur[f];var r=await jpost("/api/settings",p);toast("saved: "+(r.changed||[]).join(", "),"ok");await loadState();return;}
+    if(a==="rm-agent"){if(!confirm("remove agent "+id+"?"))return;var r=await jpost("/api/agent/remove",{id:id});toast(r.msg||"removed",r.ok?"ok":"err");await loadSettings();await loadState();return;}
+    if(a==="rm-repo"){var rs=CFG.repos.filter(function(x){return x!==id;});var r=await jpost("/api/settings",{repos:rs});toast("repos updated","ok");await loadSettings();return;}
+  }catch(e){toast("error: "+e.message,"err");}
+}
+document.addEventListener("click",function(ev){var b=ev.target.closest("[data-act]");if(!b)return;act(b.getAttribute("data-act"),b.getAttribute("data-id"),b);});
+
+$("addForm").addEventListener("submit",async function(ev){ev.preventDefault();
+  var body={id:$("aId").value.trim(),division:$("aDiv").value.trim()||"General",role:$("aRole").value,brain:$("aBrain").value,cadence_hours:parseInt($("aCad").value,10)||6,autonomous:$("aAuto").checked};
+  if(!body.id){toast("id required","err");return;}
+  try{var r=await jpost("/api/agent/add",body);toast(r.msg||(r.ok?"created":"failed"),r.ok?"ok":"err");if(r.ok){$("aId").value="";await loadSettings();await loadState();}}catch(e){toast("error: "+e.message,"err");}
+});
+$("askForm").addEventListener("submit",async function(ev){ev.preventDefault();
+  var prompt=$("askText").value.trim();if(!prompt){toast("type a prompt","err");return;}
+  var agent=$("askAgent").value||"scout";var out=$("askOut");out.className="answer mut";out.textContent="thinking…";
+  try{var r=await jpost("/api/ask",{prompt:prompt,agent_id:agent});out.className="answer";out.textContent=r.answer||(r.error||"(empty response)");}catch(e){out.className="answer";out.textContent="error: "+e.message;}
+});
+$("repoForm").addEventListener("submit",async function(ev){ev.preventDefault();
+  var v=$("repoAdd").value.trim();if(!v||v.indexOf("/")<0){toast("needs owner/name","err");return;}
+  var rs=CFG.repos.slice();if(rs.indexOf(v)<0)rs.push(v);
+  try{await jpost("/api/settings",{repos:rs});toast("repo added","ok");$("repoAdd").value="";await loadSettings();}catch(e){toast("error: "+e.message,"err");}
+});
+
+async function boot(){try{await loadSettings();}catch(e){toast("settings load failed: "+e.message,"err");}try{await loadEnv();}catch(e){}await loadState();await loadActivity();
+  setInterval(loadState,3000);setInterval(loadActivity,5000);setInterval(loadSettings,10000);setInterval(loadEnv,15000);}
+boot();
+</script></body></html>
