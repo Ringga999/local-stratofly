@@ -304,6 +304,58 @@ def _solve(body):
     except Exception as e:
         return {"ok": False, "answer": "", "error": str(e)}
 
+
+def _solve_plan(body):
+    prompt = (body.get("prompt") or "").strip()
+    agent = (body.get("agent_id") or "scout").strip()
+    if not prompt:
+        return {"ok": False, "answer": "", "delegations": [], "error": "empty prompt"}
+    try:
+        from lib import provider_hub
+        cfg = settings.load()
+        agents = cfg.get("agents") or {}
+        agent_cfg = agents.get(agent, {})
+        brain = agent_cfg.get("brain", "WORKHORSE")
+        crew = "\n".join(("- " + aid + " (role: " + (a.get("role") or "Operator") + ")") for aid, a in agents.items())
+        sys_prompt = (getattr(persona, "SOLVER_PERSONA", "") or "") + (
+            "\n\nAVAILABLE CREW - you may delegate ONLY to these exact ids:\n" + crew +
+            "\n\nAfter your narrative plan, append 0-4 delegation lines, each EXACTLY:"
+            "\n[DELEGATE: <agent_id> | <short concrete sub-task for that agent>]"
+            "\nUse only ids from the list above. If the work is single-step, output zero DELEGATE lines."
+        )
+        raw = provider_hub.think(brain=brain, system=sys_prompt, user=prompt, agent_id=agent, temperature=0.6, max_tokens=2048)
+        dels = []
+        for m in re.findall(r"\[DELEGATE:\s*([^\|\]]+)\|([^\]]+)\]", raw or ""):
+            tid = m[0].strip(); tsk = m[1].strip()
+            dels.append({"agent": tid, "task": tsk, "valid": tid in agents})
+        return {"ok": True, "answer": raw or "", "delegations": dels}
+    except Exception as e:
+        return {"ok": False, "answer": "", "delegations": [], "error": str(e)}
+
+def _delegate(body):
+    to_agent = (body.get("to_agent") or "").strip()
+    task = (body.get("task") or "").strip()
+    frm = (body.get("from_solver") or "solver").strip()
+    if not to_agent or not task:
+        return {"ok": False, "answer": "", "error": "missing to_agent or task"}
+    try:
+        from lib import provider_hub
+        cfg = settings.load()
+        agents = cfg.get("agents") or {}
+        if to_agent not in agents:
+            return {"ok": False, "answer": "", "error": "unknown agent: " + to_agent}
+        brain = agents[to_agent].get("brain", "WORKHORSE")
+        sys_p = persona.system_prompt(to_agent, extra="")
+        ans = provider_hub.think(brain=brain, system=sys_p, user=task, agent_id=to_agent, temperature=0.6, max_tokens=1024)
+        try:
+            memory.log_event(frm, "delegate", "dispatch", to_agent, "delegated: " + task[:48], -1)
+            memory.log_event(to_agent, "working", "sub_task", frm, "executing for " + frm + ": " + task[:40], -1)
+        except Exception:
+            pass
+        return {"ok": True, "answer": ans or "", "agent": to_agent}
+    except Exception as e:
+        return {"ok": False, "answer": "", "error": str(e)}
+
 class Handler(BaseHTTPRequestHandler):
     def _send_json(self, data, status=200):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
@@ -384,7 +436,9 @@ class Handler(BaseHTTPRequestHandler):
             elif p == "/api/onboard":
                 self._send_json(_onboard(b))
             elif p == "/api/solve":
-                self._send_json(_solve(b))
+                self._send_json(_solve_plan(b))
+            elif p == "/api/delegate":
+                self._send_json(_delegate(b))
             elif p == "/api/ask":
                 self._send_json(_ask(b))
             elif p == "/api/patrol":

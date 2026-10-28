@@ -2,10 +2,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Stratofly - Control Room</title>
 <style>
-:root{--bg:#0e1116;--card:#161b22;--ink:#e6edf3;--mut:#8b949e;--line:#30363d;
---green:#3fb950;--amber:#d29922;--grey:#6e7681;--blue:#58a6ff;--red:#f85149}
-@media(prefers-color-scheme:light){:root{--bg:#f6f8fa;--card:#fff;--ink:#1f2328;
---mut:#656d76;--line:#d0d7de}}
+:root{--bg:#0e1116;--card:#161b22;--ink:#e6edf3;--mut:#8b949e;--line:#30363d;--green:#3fb950;--amber:#d29922;--grey:#6e7681;--blue:#58a6ff;--red:#f85149}
+@media(prefers-color-scheme:light){:root{--bg:#f6f8fa;--card:#fff;--ink:#1f2328;--mut:#656d76;--line:#d0d7de}}
 *{box-sizing:border-box}body{margin:0;font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
 header{padding:14px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:5}
 header h1{font-size:17px;margin:0}header .tag{color:var(--mut);font-size:11px}
@@ -16,11 +14,9 @@ header h1{font-size:17px;margin:0}header .tag{color:var(--mut);font-size:11px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:9px}
 .agent{border:1px solid var(--line);border-radius:8px;padding:9px;display:flex;flex-direction:column;gap:5px;cursor:pointer;transition:border-color .15s}
 .agent:hover{border-color:var(--blue)}
-.agent .nm{font-weight:600;font-size:13px}.agent .dv{color:var(--mut);font-size:10px}
-.agent .bb{font-size:10px;color:var(--mut);min-height:13px}
+.agent .nm{font-weight:600;font-size:13px}.agent .dv{color:var(--mut);font-size:10px}.agent .bb{font-size:10px;color:var(--mut);min-height:13px}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;background:var(--grey)}
-.s-working .dot{background:var(--green)}.s-patrol .dot{background:var(--blue)}
-.s-alert .dot{background:var(--red)}.s-coffee .dot{background:var(--amber)}.s-idle .dot{background:var(--grey)}
+.s-working .dot{background:var(--green)}.s-patrol .dot{background:var(--blue)}.s-alert .dot{background:var(--red)}.s-coffee .dot{background:var(--amber)}.s-idle .dot{background:var(--grey)}
 .row{display:flex;gap:5px;align-items:center;flex-wrap:wrap;font-size:10px}
 .btn{cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:5px;padding:2px 7px;font-size:10px}
 .btn:hover{border-color:var(--blue)}.btn:disabled{opacity:.45;cursor:not-allowed}
@@ -28,104 +24,84 @@ header h1{font-size:17px;margin:0}header .tag{color:var(--mut);font-size:11px}
 .btn-danger{color:var(--red);border-color:var(--red)}
 .brain{border-left:3px solid var(--blue);padding:5px 9px;margin:5px 0;background:rgba(88,166,255,.06);border-radius:0 5px 5px 0;font-size:11px}
 .badge{font-size:9px;padding:1px 5px;border-radius:20px;border:1px solid var(--line);color:var(--mut)}
-.bar{height:7px;background:var(--line);border-radius:5px;overflow:hidden;margin-top:3px}
-.bar i{display:block;height:100%;background:var(--green)}.bar.full i{background:var(--red)}
+.bar{height:7px;background:var(--line);border-radius:5px;overflow:hidden;margin-top:3px}.bar i{display:block;height:100%;background:var(--green)}.bar.full i{background:var(--red)}
 .mut{color:var(--mut)}.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
 input,select,textarea{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:6px 8px;font:inherit;margin:2px 0;font-size:12px}
 textarea{min-height:55px;resize:vertical}
 label{font-size:10px;color:var(--mut);display:block;margin-top:6px}
 .chk{display:flex;align-items:center;gap:5px}.chk input{width:auto;margin:0}
-.evt{font-size:10px;padding:3px 0;border-bottom:1px dashed var(--line);color:var(--mut)}
-.evt b{color:var(--ink)}
+.evt{font-size:10px;padding:3px 0;border-bottom:1px dashed var(--line);color:var(--mut)}.evt b{color:var(--ink)}
 .toast{position:fixed;right:16px;bottom:16px;max-width:320px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:7px;padding:9px 12px;font-size:11px;box-shadow:0 5px 20px rgba(0,0,0,.4);opacity:0;transform:translateY(7px);transition:.25s;z-index:9}
 .toast.show{opacity:1;transform:none}.toast.err{border-left-color:var(--red)}.toast.ok{border-left-color:var(--green)}
 .answer{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:9px;margin-top:7px;white-space:pre-wrap;word-break:break-word;font-size:12px;min-height:18px}
-.repolist{list-style:none;margin:0;padding:0}.repolist li{display:flex;gap:5px;align-items:center;margin:2px 0}
-.repolist li span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.repolist{list-style:none;margin:0;padding:0}.repolist li{display:flex;gap:5px;align-items:center;margin:2px 0}.repolist li span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .statusline{font-size:11px;margin:2px 0}.ok{color:var(--green)}.no{color:var(--red)}
 .dropdown{position:relative;display:inline-block}
 .dropdown-content{display:none;position:absolute;right:0;background:var(--card);border:1px solid var(--line);border-radius:6px;min-width:220px;box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:10;padding:6px 0}
 .dropdown:hover .dropdown-content{display:block}
-.dropdown-content a{color:var(--ink);padding:6px 12px;text-decoration:none;display:block;font-size:11px}
-.dropdown-content a:hover{background:var(--bg)}
-.dropdown-content a small{color:var(--mut);display:block;font-size:9px;margin-top:1px}
+.dropdown-content a{color:var(--ink);padding:6px 12px;text-decoration:none;display:block;font-size:11px}.dropdown-content a:hover{background:var(--bg)}.dropdown-content a small{color:var(--mut);display:block;font-size:9px;margin-top:1px}
 .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:20;align-items:center;justify-content:center}
 .modal-overlay.show{display:flex}
 .modal{background:var(--card);border:1px solid var(--line);border-radius:10px;max-width:640px;width:90%;max-height:85vh;overflow-y:auto;padding:18px}
-.modal h3{margin:0 0 10px;font-size:15px}
-.modal .close{float:right;cursor:pointer;font-size:18px;color:var(--mut)}
-.modal .close:hover{color:var(--ink)}
+.modal h3{margin:0 0 10px;font-size:15px}.modal .close{float:right;cursor:pointer;font-size:18px;color:var(--mut)}.modal .close:hover{color:var(--ink)}
 .modal-section{margin:12px 0;padding:10px;background:var(--bg);border-radius:6px;border:1px solid var(--line)}
 .modal-section h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;color:var(--mut);letter-spacing:.05em}
-.module-placeholder{padding:8px;background:rgba(88,166,255,.05);border-left:3px solid var(--blue);border-radius:0 5px 5px 0;margin:6px 0;font-size:11px}
-.module-placeholder b{color:var(--blue)}
+.module-placeholder{padding:8px;background:rgba(88,166,255,.05);border-left:3px solid var(--blue);border-radius:0 5px 5px 0;margin:6px 0;font-size:11px}.module-placeholder b{color:var(--blue)}
+.deleg-row{border:1px solid var(--line);border-radius:6px;padding:7px;margin:6px 0;font-size:11px}
+.deleg-row .hd{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.deleg-row .tk{flex:1;color:var(--ink)}
+.deleg-row .ag{color:var(--blue);font-weight:600}
+.deleg-row .bad{color:var(--red)}
+.deleg-out{margin-top:6px;padding:6px;background:var(--card);border-radius:5px;white-space:pre-wrap;word-break:break-word;font-size:11px;min-height:14px;color:var(--mut)}
 </style></head><body>
 <header><h1>&#9876; Stratofly</h1><span class="tag">control room &middot; one crew, every free API</span>
 <span class="tag" id="online">&#9679; connecting&#8230;</span>
 <button class="btn btn-primary" data-act="patrol">Run Patrol</button>
 <button class="btn" id="mockBtn" data-act="mock-toggle">Mock: OFF</button>
-<div class="dropdown">
-  <button class="btn">Free APIs &#9662;</button>
-  <div class="dropdown-content" id="freeApisMenu"></div>
-</div>
+<div class="dropdown"><button class="btn">Free APIs &#9662;</button><div class="dropdown-content" id="freeApisMenu"></div></div>
 <span class="tag" id="clock"></span></header>
 <div class="wrap">
  <div class="card full"><h2>Live Crew &middot; Real State (click card for details)</h2><div class="grid" id="crewGrid"></div></div>
- <div class="card"><h2>Onboard &middot; API Key</h2>
-   <div class="statusline" id="envStatus">checking&#8230;</div>
-   <label>NVIDIA NIM key (nvapi-...)</label>
-   <input type="password" id="apiKey" placeholder="paste key, then Save">
+ <div class="card"><h2>Onboard &middot; API Key</h2><div class="statusline" id="envStatus">checking&#8230;</div>
+   <label>NVIDIA NIM key (nvapi-...)</label><input type="password" id="apiKey" placeholder="paste key, then Save">
    <button class="btn btn-primary" data-act="onboard">Save key</button>
-   <div class="mut" style="font-size:10px;margin-top:5px">Key written to .env (local, never committed). Free serverless at build.nvidia.com.</div>
- </div>
- <div class="card"><h2>Add Agent &middot; Role = Capability</h2>
-   <form id="addForm">
+   <div class="mut" style="font-size:10px;margin-top:5px">Key written to .env (local, never committed). Free serverless at build.nvidia.com.</div></div>
+ <div class="card"><h2>Add Agent &middot; Role = Capability</h2><form id="addForm">
      <label>id</label><input id="aId" placeholder="e.g. reviewer" required>
      <label>division</label><input id="aDiv" placeholder="Engineering" value="General">
      <label>role</label><select id="aRole"></select>
      <label>brain</label><select id="aBrain"></select>
      <label>cadence hours</label><input id="aCad" type="number" min="1" max="168" value="6">
      <div class="chk"><input type="checkbox" id="aAuto" checked><label for="aAuto" style="margin:0">autonomous (ARMED)</label></div>
-     <button class="btn btn-primary" type="submit" style="margin-top:7px">Create agent</button>
-   </form>
- </div>
- <div class="card"><h2>Command the Crew &middot; Free Prompt</h2>
-   <form id="askForm">
+     <button class="btn btn-primary" type="submit" style="margin-top:7px">Create agent</button></form></div>
+ <div class="card"><h2>Command the Crew &middot; Free Prompt</h2><form id="askForm">
      <label>agent</label><select id="askAgent"></select>
      <label>prompt</label><textarea id="askText" placeholder="e.g. Summarize the 3 newest open issues" required></textarea>
-     <button class="btn btn-primary" type="submit">Send</button>
-   </form>
-   <div class="answer mut" id="askOut">Response appears here&#8230;</div>
- </div>
+     <button class="btn btn-primary" type="submit">Send</button></form>
+   <div class="answer mut" id="askOut">Response appears here&#8230;</div></div>
  <div class="card"><h2>Brains &middot; Model-Kind Aware</h2><div id="brainsBox"></div></div>
  <div class="card"><h2>Free-Tier Limits</h2><div id="limitsBox"></div></div>
- <div class="card"><h2>Watched Repos</h2>
-   <ul class="repolist" id="reposBox"></ul>
-   <form id="repoForm" style="display:flex;gap:5px;margin-top:5px">
-     <input id="repoAdd" placeholder="owner/name" style="flex:1">
-     <button class="btn" type="submit">+ add</button>
-   </form>
- </div>
+ <div class="card"><h2>Watched Repos</h2><ul class="repolist" id="reposBox"></ul>
+   <form id="repoForm" style="display:flex;gap:5px;margin-top:5px"><input id="repoAdd" placeholder="owner/name" style="flex:1"><button class="btn" type="submit">+ add</button></form></div>
  <div class="card full"><h2>Activity Feed</h2><div id="activityBox" class="mut">loading&#8230;</div></div>
 </div>
-<div class="modal-overlay" id="agentModal">
-  <div class="modal">
+<div class="modal-overlay" id="agentModal"><div class="modal">
     <span class="close" data-act="close-modal">&times;</span>
     <h3 id="modalTitle">Agent</h3>
     <div id="modalBody"></div>
     <div class="modal-section" id="solveSection" style="display:none">
       <h4>Solve Complex Problem</h4>
-      <label>Project Overview / Big Idea</label>
-      <textarea id="solveOverview" placeholder="Describe your project or big idea in detail..." style="min-height:60px"></textarea>
-      <label>Goal (What do you want to achieve?)</label>
-      <textarea id="solveGoal" placeholder="e.g. Build an e-commerce platform with user auth..." style="min-height:40px"></textarea>
-      <label>Timeline / Constraints</label>
-      <textarea id="solveTimeline" placeholder="e.g. 3 months, limited budget, small team..." style="min-height:30px"></textarea>
+      <label>Project Overview / Big Idea</label><textarea id="solveOverview" placeholder="Describe your project or big idea in detail..." style="min-height:60px"></textarea>
+      <label>Goal (What do you want to achieve?)</label><textarea id="solveGoal" placeholder="e.g. Build an e-commerce platform with user auth..." style="min-height:40px"></textarea>
+      <label>Timeline / Constraints</label><textarea id="solveTimeline" placeholder="e.g. 3 months, limited budget, small team..." style="min-height:30px"></textarea>
       <button class="btn btn-primary" data-act="run-solve" id="runSolveBtn" style="margin-top:8px">Run Solver</button>
       <div class="answer mut" id="solveOut" style="margin-top:8px">Solver response will appear here...</div>
     </div>
-  </div>
-</div>
+    <div class="modal-section" id="delegateSection" style="display:none">
+      <h4>Delegation Board &middot; Solver proposed these sub-tasks</h4>
+      <div id="delegateBoard" class="mut">Run Solver to populate.</div>
+    </div>
+</div></div>
 <div class="toast" id="toast"></div>
 <script>
 function $(id){return document.getElementById(id);}
@@ -133,129 +109,36 @@ function esc(s){s=String(s);var m={"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;
 async function jget(u){var r=await fetch(u);if(!r.ok)throw new Error(u+" -> "+r.status);return r.json();}
 async function jpost(u,body){var r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})});return r.json();}
 function toast(msg,kind){var t=$("toast");t.textContent=msg;t.className="toast show "+(kind||"");setTimeout(function(){t.className="toast";},3000);}
-var CFG={roles:[],brains:{},agents:{},limits:{},repos:[]};
-var STATE={agents:[]};
-async function loadSettings(){
-  var s=await jget("/api/settings");
-  CFG.roles=Object.keys(s.roles||{});
-  CFG.brains=s.brains||{};CFG.agents=s.agents||{};CFG.limits=s.limits||{};CFG.repos=s.repos||[];
-  fillSelect($("aRole"),CFG.roles);
-  fillSelect($("aBrain"),Object.keys(CFG.brains));
-  fillSelect($("askAgent"),Object.keys(CFG.agents));
-  renderBrains();renderLimits();renderRepos();
-}
+var CFG={roles:[],brains:{},agents:{},limits:{},repos:[]};var STATE={agents:[]};var __DELEG=[];var __SOLVER_ID="scout";
+async function loadSettings(){var s=await jget("/api/settings");CFG.roles=Object.keys(s.roles||{});CFG.brains=s.brains||{};CFG.agents=s.agents||{};CFG.limits=s.limits||{};CFG.repos=s.repos||[];fillSelect($("aRole"),CFG.roles);fillSelect($("aBrain"),Object.keys(CFG.brains));fillSelect($("askAgent"),Object.keys(CFG.agents));renderBrains();renderLimits();renderRepos();}
 function fillSelect(sel,items){sel.innerHTML="";for(var i=0;i<items.length;i++){var o=document.createElement("option");o.value=items[i];o.textContent=items[i];sel.appendChild(o);}}
-async function loadState(){
-  var s=await jget("/api/state");STATE=s;$("online").innerHTML=s.online?'<span class="ok">&#9679; online</span>':'<span class="no">&#9679; offline</span>';$("clock").textContent="updated "+new Date().toLocaleTimeString();renderCrew(s.agents||[]);
-}
-async function loadActivity(){
-  try{var a=await jget("/api/activity?limit=12");var ev=a.events||[];
-    $("activityBox").innerHTML=ev.length?ev.map(function(e){return '<div class="evt"><b>'+esc(e.agent||"?")+'</b> '+esc(e.state||"")+' &middot; '+esc(e.action||"")+' &middot; '+esc(e.bubble||"")+'</div>';}).join(""):'<span class="mut">no events yet</span>';
-  }catch(e){$("activityBox").textContent="activity unavailable";}
-}
-async function loadEnv(){
-  try{var e=await jget("/api/env-status");
-    $("envStatus").innerHTML='NVIDIA key: '+(e.nvidia?'<span class="ok">set</span>':'<span class="no">missing</span>')+' &middot; GitHub: '+(e.github?'<span class="ok">token</span>':'<span class="mut">tokenless</span>');
-  }catch(e){$("envStatus").textContent="env status unavailable";}
-}
-async function loadFreeApis(){
-  try{var r=await jget("/api/free-apis");
-    $("freeApisMenu").innerHTML=r.apis.map(function(a){return '<a href="'+esc(a.url)+'" target="_blank" rel="noopener"><b>'+esc(a.name)+'</b><small>'+esc(a.desc)+'</small></a>';}).join("");
-  }catch(e){}
-}
-function renderCrew(list){
-  $("crewGrid").innerHTML=list.map(function(a){
-    var st=(a.state||"idle").toLowerCase();
-    return '<div class="agent s-'+esc(st)+'" data-act="open-agent" data-id="'+esc(a.id)+'">'+
-      '<div class="nm"><span class="dot"></span>'+esc(a.id)+'</div>'+
-      '<div class="dv">'+esc(a.division||"General")+' &middot; '+esc(a.role||"Operator")+' &middot; '+esc(a.brain||"WORKHORSE")+' &middot; '+(a.cadence_hours||6)+'h</div>'+
-      '<div class="bb">'+esc(a.bubble||"ready - waiting for task")+'</div>'+
-      '<div class="row">'+
-        '<button class="btn" data-act="toggle-auto" data-id="'+esc(a.id)+'">'+(a.autonomous?"auto:ON":"auto:OFF")+'</button>'+
-        '<button class="btn" data-act="toggle-en" data-id="'+esc(a.id)+'">'+(a.enabled?"live":"paused")+'</button>'+
-        '<button class="btn btn-danger" data-act="rm-agent" data-id="'+esc(a.id)+'">x</button>'+
-      '</div></div>';
-  }).join("")||'<span class="mut">no agents configured</span>';
-}
-function renderBrains(){
-  $("brainsBox").innerHTML=Object.keys(CFG.brains).map(function(k){
-    var ch=CFG.brains[k]||[];
-    var inner=ch.length?ch.map(function(e){return '<span class="mono">'+esc(e.provider)+"/"+esc(e.model)+'</span> <span class="badge">'+esc(e.kind||"text")+'</span>';}).join("<br>"):'<span class="mut">(empty)</span>';
-    return '<div class="brain"><strong>'+esc(k)+'</strong> <span class="mut">('+ch.length+')</span><br>'+inner+'</div>';
-  }).join("")||'<span class="mut">no brains</span>';
-}
-function renderLimits(){
-  var per=STATE.per_provider||{};var mx=CFG.limits.max_per_provider||10;var mt=CFG.limits.max_total_agents||30;var tot=0;
-  for(var k in CFG.agents){if(CFG.agents[k].enabled!==false)tot++;}
-  var bars=Object.keys(per).map(function(p){var n=per[p];var full=n>=mx;
-    return '<div>'+esc(p)+' <span class="mono">'+n+"/"+mx+'</span><div class="bar '+(full?"full":"")+'"><i style="width:'+Math.min(100,n/mx*100)+'%"></i></div></div>';}).join("");
-  var tfull=tot>=mt;
-  $("limitsBox").innerHTML=(bars||'<span class="mut">no providers in use</span>')+'<div style="margin-top:7px">total <span class="mono">'+tot+"/"+mt+'</span><div class="bar '+(tfull?"full":"")+'"><i style="width:'+Math.min(100,tot/mt*100)+'%"></i></div></div>';
-}
-function renderRepos(){
-  $("reposBox").innerHTML=(CFG.repos.length?CFG.repos:["(none)"]).map(function(r){
-    if(r==="(none)")return '<li><span class="mut">(none)</span></li>';
-    return '<li><span class="mono">'+esc(r)+'</span><button class="btn btn-danger" data-act="rm-repo" data-id="'+esc(r)+'">x</button></li>';}).join("");
-}
-async function openAgentModal(aid){
-  try{
-    var d=await jget("/api/agent/"+encodeURIComponent(aid));
-    $("modalTitle").textContent=d.id+" ("+d.role+" / "+d.division+")";
-    var brainHtml=d.brain_chain.map(function(b){return '<span class="mono">'+esc(b.provider)+'/'+esc(b.model)+'</span> <span class="badge">'+esc(b.kind)+'</span>';}).join("<br>")||'<span class="mut">(empty)</span>';
-    var eventsHtml=d.recent_events.length?d.recent_events.map(function(e){return '<div class="evt"><b>'+esc(e.state||"")+'</b> &middot; '+esc(e.action||"")+' &middot; '+esc(e.bubble||"")+'</div>';}).join(""):'<span class="mut">no recent events</span>';
-    var moduleLabels={upload:"Multi-modal Upload (PDF/image/link)",delegation:"Delegation Board",simulation:"Simulation Runner",draft_queue:"Draft Approval Queue",audit_viewer:"Audit Report Viewer",dependency_graph:"Dependency Graph (text)",redesign_editor:"Redesign Proposal Editor",spec_input:"Spec Input",code_diff:"Code Diff Viewer",test_runner:"Test Runner + Results",pr_creator:"PR Creator",research_input:"Research Input",source_list:"Source List with Citations",trend_chart:"Trend Chart (text)",report_gen:"Report Generator",platform_selector:"Platform Selector (X/LinkedIn/devlog)",tone_selector:"Tone Selector",draft_composer:"Draft Composer",approval_queue:"Approval Queue + Telegram",mention_monitor:"Mention Monitor",scope_selector:"Scope Selector",cve_dashboard:"CVE Dashboard",breaking_flags:"Breaking-Change Flags",compliance_checklist:"Compliance Checklist",routine_list:"Routine List + Run Buttons",handoff_timeline:"Handoff Timeline",pipeline_health:"Pipeline Health",ops_summary:"Ops Summary Generator",alert_log:"Alert Log"};
-    var modulesHtml=d.modules.length?d.modules.map(function(m){return '<div class="module-placeholder"><b>'+esc(moduleLabels[m]||m)+'</b><br><span class="mut">Coming in Phase 3 (post-demo). This module will be enabled for '+esc(d.role)+' agents.</span></div>';}).join(""):'<span class="mut">No specialized modules for this role yet.</span>';
-    $("modalBody").innerHTML=
-      '<div class="modal-section"><h4>Brain Chain</h4>'+brainHtml+'</div>'+
-      '<div class="modal-section"><h4>Current State</h4><div><b>'+esc(d.state)+'</b>: '+esc(d.bubble)+'</div><div class="mut" style="margin-top:4px">Action: '+esc(d.action)+' &middot; Cadence: '+d.cadence_hours+'h &middot; Autonomous: '+(d.autonomous?"yes":"no")+' &middot; Enabled: '+(d.enabled?"yes":"no")+'</div></div>'+
-      '<div class="modal-section"><h4>Role-Specific Modules ('+esc(d.role)+')</h4>'+modulesHtml+'</div>'+
-      '<div class="modal-section"><h4>Recent Events</h4>'+eventsHtml+'</div>'+
-      '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">'+
-        '<button class="btn btn-primary" data-act="open-solve" data-id="'+esc(d.id)+'">Solve Problem</button>'+
-        '<button class="btn" data-act="toggle-auto" data-id="'+esc(d.id)+'">'+(d.autonomous?"auto:ON":"auto:OFF")+'</button>'+
-        '<button class="btn" data-act="toggle-en" data-id="'+esc(d.id)+'">'+(d.enabled?"live":"paused")+'</button>'+
-        '<button class="btn btn-danger" data-act="rm-agent" data-id="'+esc(d.id)+'">Remove Agent</button>'+
-      '</div>';
-    var ob=document.querySelector('#modalBody [data-act="open-solve"]');if(ob&&d.role!=="Solver")ob.style.display="none";
-    var ss=$("solveSection");if(ss)ss.style.display="none";
-    var sov=$("solveOverview");if(sov)sov.value="";
-    var sgl=$("solveGoal");if(sgl)sgl.value="";
-    var stl=$("solveTimeline");if(stl)stl.value="";
-    var so=$("solveOut");if(so){so.textContent="Solver response will appear here...";so.className="answer mut";}
-    $("agentModal").classList.add("show");
-  }catch(e){toast("error loading agent: "+e.message,"err");}
-}
-async function act(a,id,btn){
-  try{
-    if(a==="open-agent"){openAgentModal(id);return;}
-    if(a==="close-modal"){$("agentModal").classList.remove("show");return;}
-    if(a==="open-solve"){var ss=$("solveSection");if(ss)ss.style.display="block";var rb=$("runSolveBtn");if(rb)rb.setAttribute("data-id",id);return;}
-    if(a==="run-solve"){var ov=$("solveOverview").value.trim();var gl=$("solveGoal").value.trim();var tl=$("solveTimeline").value.trim();if(!ov&&!gl){toast("fill at least overview or goal","err");return;}var full="PROJECT OVERVIEW: "+ov+" | GOAL: "+gl+" | TIMELINE: "+tl;var out=$("solveOut");out.className="answer mut";out.textContent="Solver is thinking...";var rb=$("runSolveBtn");var aid=rb?rb.getAttribute("data-id"):(id||"scout");jpost("/api/solve",{prompt:full,agent_id:aid}).then(function(r){out.className="answer";out.textContent=r.answer||(r.error||"(empty)");}).catch(function(e){out.className="answer";out.textContent="error: "+e.message;});return;}
-    if(a==="patrol"){var r=await jpost("/api/patrol",{});toast(r.msg||"patrol started","ok");return;}
-    if(a==="mock-toggle"){var on=btn.textContent.indexOf("ON")>=0;var r=await jpost(on?"/api/mock/stop":"/api/mock/start",{});toast(r.msg||(on?"mock stopped":"mock running"),"ok");btn.textContent="Mock: "+(on?"OFF":"ON");return;}
-    if(a==="onboard"){var key=$("apiKey").value.trim();if(!key){toast("paste a key first","err");return;}var r=await jpost("/api/onboard",{key:key});toast(r.msg||"saved",r.ok?"ok":"err");if(r.ok){$("apiKey").value="";loadEnv();}return;}
-    if(a==="toggle-auto"||a==="toggle-en"){var f=a==="toggle-auto"?"autonomous":"enabled";var cur=null;for(var i=0;i<STATE.agents.length;i++){if(STATE.agents[i].id===id){cur=STATE.agents[i];break;}}if(!cur)return;var p={agents:{}};p.agents[id]={};p.agents[id][f]=!cur[f];var r=await jpost("/api/settings",p);toast("saved: "+(r.changed||[]).join(", "),"ok");await loadState();return;}
-    if(a==="rm-agent"){if(!confirm("remove agent "+id+"?"))return;var r=await jpost("/api/agent/remove",{id:id});toast(r.msg||"removed",r.ok?"ok":"err");await loadSettings();await loadState();$("agentModal").classList.remove("show");return;}
-    if(a==="rm-repo"){var rs=CFG.repos.filter(function(x){return x!==id;});var r=await jpost("/api/settings",{repos:rs});toast("repos updated","ok");await loadSettings();return;}
-  }catch(e){toast("error: "+e.message,"err");}
-}
+async function loadState(){var s=await jget("/api/state");STATE=s;$("online").innerHTML=s.online?'<span class="ok">&#9679; online</span>':'<span class="no">&#9679; offline</span>';$("clock").textContent="updated "+new Date().toLocaleTimeString();renderCrew(s.agents||[]);}
+async function loadActivity(){try{var a=await jget("/api/activity?limit=12");var ev=a.events||[];$("activityBox").innerHTML=ev.length?ev.map(function(e){return '<div class="evt"><b>'+esc(e.agent||"?")+'</b> '+esc(e.state||"")+' &middot; '+esc(e.action||"")+' &middot; '+esc(e.bubble||"")+'</div>';}).join(""):'<span class="mut">no events yet</span>';}catch(e){$("activityBox").textContent="activity unavailable";}}
+async function loadEnv(){try{var e=await jget("/api/env-status");$("envStatus").innerHTML='NVIDIA key: '+(e.nvidia?'<span class="ok">set</span>':'<span class="no">missing</span>')+' &middot; GitHub: '+(e.github?'<span class="ok">token</span>':'<span class="mut">tokenless</span>');}catch(e){$("envStatus").textContent="env status unavailable";}}
+async function loadFreeApis(){try{var r=await jget("/api/free-apis");$("freeApisMenu").innerHTML=r.apis.map(function(a){return '<a href="'+esc(a.url)+'" target="_blank" rel="noopener"><b>'+esc(a.name)+'</b><small>'+esc(a.desc)+'</small></a>';}).join("");}catch(e){}}
+function renderCrew(list){$("crewGrid").innerHTML=list.map(function(a){var st=(a.state||"idle").toLowerCase();return '<div class="agent s-'+esc(st)+'" data-act="open-agent" data-id="'+esc(a.id)+'"><div class="nm"><span class="dot"></span>'+esc(a.id)+'</div><div class="dv">'+esc(a.division||"General")+' &middot; '+esc(a.role||"Operator")+' &middot; '+esc(a.brain||"WORKHORSE")+' &middot; '+(a.cadence_hours||6)+'h</div><div class="bb">'+esc(a.bubble||"ready - waiting for task")+'</div><div class="row"><button class="btn" data-act="toggle-auto" data-id="'+esc(a.id)+'">'+(a.autonomous?"auto:ON":"auto:OFF")+'</button><button class="btn" data-act="toggle-en" data-id="'+esc(a.id)+'">'+(a.enabled?"live":"paused")+'</button><button class="btn btn-danger" data-act="rm-agent" data-id="'+esc(a.id)+'">x</button></div></div>';}).join("")||'<span class="mut">no agents configured</span>';}
+function renderBrains(){$("brainsBox").innerHTML=Object.keys(CFG.brains).map(function(k){var ch=CFG.brains[k]||[];var inner=ch.length?ch.map(function(e){return '<span class="mono">'+esc(e.provider)+"/"+esc(e.model)+'</span> <span class="badge">'+esc(e.kind||"text")+'</span>';}).join("<br>"):'<span class="mut">(empty)</span>';return '<div class="brain"><strong>'+esc(k)+'</strong> <span class="mut">('+ch.length+')</span><br>'+inner+'</div>';}).join("")||'<span class="mut">no brains</span>';}
+function renderLimits(){var per=STATE.per_provider||{};var mx=CFG.limits.max_per_provider||10;var mt=CFG.limits.max_total_agents||30;var tot=0;for(var k in CFG.agents){if(CFG.agents[k].enabled!==false)tot++;}var bars=Object.keys(per).map(function(p){var n=per[p];var full=n>=mx;return '<div>'+esc(p)+' <span class="mono">'+n+"/"+mx+'</span><div class="bar '+(full?"full":"")+'"><i style="width:'+Math.min(100,n/mx*100)+'%"></i></div></div>';}).join("");var tfull=tot>=mt;$("limitsBox").innerHTML=(bars||'<span class="mut">no providers in use</span>')+'<div style="margin-top:7px">total <span class="mono">'+tot+"/"+mt+'</span><div class="bar '+(tfull?"full":"")+'"><i style="width:'+Math.min(100,tot/mt*100)+'%"></i></div></div>';}
+function renderRepos(){$("reposBox").innerHTML=(CFG.repos.length?CFG.repos:["(none)"]).map(function(r){if(r==="(none)")return '<li><span class="mut">(none)</span></li>';return '<li><span class="mono">'+esc(r)+'</span><button class="btn btn-danger" data-act="rm-repo" data-id="'+esc(r)+'">x</button></li>';}).join("");}
+function renderDelegateBoard(){$("delegateBoard").innerHTML=__DELEG.length?__DELEG.map(function(d,i){var ag=d.valid?('<span class="ag">'+esc(d.agent)+'</span>'):('<span class="bad">'+esc(d.agent)+' (unknown)</span>');return '<div class="deleg-row"><div class="hd"><span class="tk">'+esc(d.task)+'</span><span>&rarr;</span>'+ag+(d.valid?'<button class="btn btn-primary" data-act="run-delegate" data-idx="'+i+'">Run via '+esc(d.agent)+'</button>':'')+'</div><div class="deleg-out" id="do-'+i+'"></div></div>';}).join(""):'<span class="mut">Solver proposed no delegations (single-step plan).</span>';}
+async function openAgentModal(aid){try{var d=await jget("/api/agent/"+encodeURIComponent(aid));$("modalTitle").textContent=d.id+" ("+d.role+" / "+d.division+")";var brainHtml=d.brain_chain.map(function(b){return '<span class="mono">'+esc(b.provider)+'/'+esc(b.model)+'</span> <span class="badge">'+esc(b.kind)+'</span>';}).join("<br>")||'<span class="mut">(empty)</span>';var eventsHtml=d.recent_events.length?d.recent_events.map(function(e){return '<div class="evt"><b>'+esc(e.state||"")+'</b> &middot; '+esc(e.action||"")+' &middot; '+esc(e.bubble||"")+'</div>';}).join(""):'<span class="mut">no recent events</span>';var moduleLabels={upload:"Multi-modal Upload (PDF/image/link)",delegation:"Delegation Board",simulation:"Simulation Runner",draft_queue:"Draft Approval Queue",audit_viewer:"Audit Report Viewer",dependency_graph:"Dependency Graph (text)",redesign_editor:"Redesign Proposal Editor",spec_input:"Spec Input",code_diff:"Code Diff Viewer",test_runner:"Test Runner + Results",pr_creator:"PR Creator",research_input:"Research Input",source_list:"Source List with Citations",trend_chart:"Trend Chart (text)",report_gen:"Report Generator",platform_selector:"Platform Selector (X/LinkedIn/devlog)",tone_selector:"Tone Selector",draft_composer:"Draft Composer",approval_queue:"Approval Queue + Telegram",mention_monitor:"Mention Monitor",scope_selector:"Scope Selector",cve_dashboard:"CVE Dashboard",breaking_flags:"Breaking-Change Flags",compliance_checklist:"Compliance Checklist",routine_list:"Routine List + Run Buttons",handoff_timeline:"Handoff Timeline",pipeline_health:"Pipeline Health",ops_summary:"Ops Summary Generator",alert_log:"Alert Log"};var modulesHtml=d.modules.length?d.modules.map(function(m){return '<div class="module-placeholder"><b>'+esc(moduleLabels[m]||m)+'</b><br><span class="mut">Coming in Phase 3+ (post-demo). Enabled for '+esc(d.role)+' agents.</span></div>';}).join(""):'<span class="mut">No specialized modules for this role yet.</span>';$("modalBody").innerHTML='<div class="modal-section"><h4>Brain Chain</h4>'+brainHtml+'</div><div class="modal-section"><h4>Current State</h4><div><b>'+esc(d.state)+'</b>: '+esc(d.bubble)+'</div><div class="mut" style="margin-top:4px">Action: '+esc(d.action)+' &middot; Cadence: '+d.cadence_hours+'h &middot; Autonomous: '+(d.autonomous?"yes":"no")+' &middot; Enabled: '+(d.enabled?"yes":"no")+'</div></div><div class="modal-section"><h4>Role-Specific Modules ('+esc(d.role)+')</h4>'+modulesHtml+'</div><div class="modal-section"><h4>Recent Events</h4>'+eventsHtml+'</div><div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-primary" data-act="open-solve" data-id="'+esc(d.id)+'">Solve Problem</button><button class="btn" data-act="toggle-auto" data-id="'+esc(d.id)+'">'+(d.autonomous?"auto:ON":"auto:OFF")+'</button><button class="btn" data-act="toggle-en" data-id="'+esc(d.id)+'">'+(d.enabled?"live":"paused")+'</button><button class="btn btn-danger" data-act="rm-agent" data-id="'+esc(d.id)+'">Remove Agent</button></div>';var ob=document.querySelector('#modalBody [data-act="open-solve"]');if(ob&&d.role!=="Solver")ob.style.display="none";$("solveSection").style.display="none";$("delegateSection").style.display="none";$("delegateBoard").innerHTML="Run Solver to populate.";__DELEG=[];$("solveOverview").value="";$("solveGoal").value="";$("solveTimeline").value="";$("solveOut").textContent="Solver response will appear here...";$("solveOut").className="answer mut";$("agentModal").classList.add("show");}catch(e){toast("error loading agent: "+e.message,"err");}}
+async function act(a,id,btn){try{
+ if(a==="open-agent"){openAgentModal(id);return;}
+ if(a==="close-modal"){$("agentModal").classList.remove("show");return;}
+ if(a==="open-solve"){var ss=$("solveSection");if(ss)ss.style.display="block";var rb=$("runSolveBtn");if(rb)rb.setAttribute("data-id",id);__SOLVER_ID=id;return;}
+ if(a==="run-solve"){var ov=$("solveOverview").value.trim();var gl=$("solveGoal").value.trim();var tl=$("solveTimeline").value.trim();if(!ov&&!gl){toast("fill at least overview or goal","err");return;}var full="PROJECT OVERVIEW: "+ov+" | GOAL: "+gl+" | TIMELINE: "+tl;var out=$("solveOut");out.className="answer mut";out.textContent="Solver is planning...";var rb=$("runSolveBtn");var aid=rb?rb.getAttribute("data-id"):(id||"scout");__SOLVER_ID=aid;jpost("/api/solve",{prompt:full,agent_id:aid}).then(function(r){out.className="answer";out.textContent=r.answer||(r.error||"(empty)");__DELEG=r.delegations||[];renderDelegateBoard();$("delegateSection").style.display="block";}).catch(function(e){out.className="answer";out.textContent="error: "+e.message;});return;}
+ if(a==="run-delegate"){var idx=btn.getAttribute("data-idx");var d=__DELEG[parseInt(idx,10)];if(!d)return;var o=$("do-"+idx);o.textContent="running via "+d.agent+"...";jpost("/api/delegate",{to_agent:d.agent,task:d.task,from_solver:__SOLVER_ID}).then(function(r){o.textContent=r.answer||(r.error||"(empty)");loadActivity();}).catch(function(e){o.textContent="error: "+e.message;});return;}
+ if(a==="patrol"){var r=await jpost("/api/patrol",{});toast(r.msg||"patrol started","ok");return;}
+ if(a==="mock-toggle"){var on=btn.textContent.indexOf("ON")>=0;var r=await jpost(on?"/api/mock/stop":"/api/mock/start",{});toast(r.msg||(on?"mock stopped":"mock running"),"ok");btn.textContent="Mock: "+(on?"OFF":"ON");return;}
+ if(a==="onboard"){var key=$("apiKey").value.trim();if(!key){toast("paste a key first","err");return;}var r=await jpost("/api/onboard",{key:key});toast(r.msg||"saved",r.ok?"ok":"err");if(r.ok){$("apiKey").value="";loadEnv();}return;}
+ if(a==="toggle-auto"||a==="toggle-en"){var f=a==="toggle-auto"?"autonomous":"enabled";var cur=null;for(var i=0;i<STATE.agents.length;i++){if(STATE.agents[i].id===id){cur=STATE.agents[i];break;}}if(!cur)return;var p={agents:{}};p.agents[id]={};p.agents[id][f]=!cur[f];var r=await jpost("/api/settings",p);toast("saved: "+(r.changed||[]).join(", "),"ok");await loadState();return;}
+ if(a==="rm-agent"){if(!confirm("remove agent "+id+"?"))return;var r=await jpost("/api/agent/remove",{id:id});toast(r.msg||"removed",r.ok?"ok":"err");await loadSettings();await loadState();$("agentModal").classList.remove("show");return;}
+ if(a==="rm-repo"){var rs=CFG.repos.filter(function(x){return x!==id;});var r=await jpost("/api/settings",{repos:rs});toast("repos updated","ok");await loadSettings();return;}
+}catch(e){toast("error: "+e.message,"err");}}
 document.addEventListener("click",function(ev){var b=ev.target.closest("[data-act]");if(!b)return;act(b.getAttribute("data-act"),b.getAttribute("data-id"),b);});
-$("addForm").addEventListener("submit",async function(ev){ev.preventDefault();
-  var body={id:$("aId").value.trim(),division:$("aDiv").value.trim()||"General",role:$("aRole").value,brain:$("aBrain").value,cadence_hours:parseInt($("aCad").value,10)||6,autonomous:$("aAuto").checked};
-  if(!body.id){toast("id required","err");return;}
-  try{var r=await jpost("/api/agent/add",body);toast(r.msg||(r.ok?"created":"failed"),r.ok?"ok":"err");if(r.ok){$("aId").value="";await loadSettings();await loadState();}}catch(e){toast("error: "+e.message,"err");}
-});
-$("askForm").addEventListener("submit",async function(ev){ev.preventDefault();
-  var prompt=$("askText").value.trim();if(!prompt){toast("type a prompt","err");return;}
-  var agent=$("askAgent").value||"scout";var out=$("askOut");out.className="answer mut";out.textContent="thinking...";
-  try{var r=await jpost("/api/ask",{prompt:prompt,agent_id:agent});out.className="answer";out.textContent=r.answer||(r.error||"(empty response)");}catch(e){out.className="answer";out.textContent="error: "+e.message;}
-});
-$("repoForm").addEventListener("submit",async function(ev){ev.preventDefault();
-  var v=$("repoAdd").value.trim();if(!v||v.indexOf("/")<0){toast("needs owner/name","err");return;}
-  var rs=CFG.repos.slice();if(rs.indexOf(v)<0)rs.push(v);
-  try{await jpost("/api/settings",{repos:rs});toast("repo added","ok");$("repoAdd").value="";await loadSettings();}catch(e){toast("error: "+e.message,"err");}
-});
-async function boot(){try{await loadSettings();}catch(e){toast("settings load failed: "+e.message,"err");}try{await loadEnv();}catch(e){}try{await loadFreeApis();}catch(e){}await loadState();await loadActivity();
-  setInterval(loadState,3000);setInterval(loadActivity,5000);setInterval(loadSettings,10000);setInterval(loadEnv,15000);}
+$("addForm").addEventListener("submit",async function(ev){ev.preventDefault();var body={id:$("aId").value.trim(),division:$("aDiv").value.trim()||"General",role:$("aRole").value,brain:$("aBrain").value,cadence_hours:parseInt($("aCad").value,10)||6,autonomous:$("aAuto").checked};if(!body.id){toast("id required","err");return;}try{var r=await jpost("/api/agent/add",body);toast(r.msg||(r.ok?"created":"failed"),r.ok?"ok":"err");if(r.ok){$("aId").value="";await loadSettings();await loadState();}}catch(e){toast("error: "+e.message,"err");}});
+$("askForm").addEventListener("submit",async function(ev){ev.preventDefault();var prompt=$("askText").value.trim();if(!prompt){toast("type a prompt","err");return;}var agent=$("askAgent").value||"scout";var out=$("askOut");out.className="answer mut";out.textContent="thinking...";try{var r=await jpost("/api/ask",{prompt:prompt,agent_id:agent});out.className="answer";out.textContent=r.answer||(r.error||"(empty response)");}catch(e){out.className="answer";out.textContent="error: "+e.message;}});
+$("repoForm").addEventListener("submit",async function(ev){ev.preventDefault();var v=$("repoAdd").value.trim();if(!v||v.indexOf("/")<0){toast("needs owner/name","err");return;}var rs=CFG.repos.slice();if(rs.indexOf(v)<0)rs.push(v);try{await jpost("/api/settings",{repos:rs});toast("repo added","ok");$("repoAdd").value="";await loadSettings();}catch(e){toast("error: "+e.message,"err");}});
+async function boot(){try{await loadSettings();}catch(e){toast("settings load failed: "+e.message,"err");}try{await loadEnv();}catch(e){}try{await loadFreeApis();}catch(e){}await loadState();await loadActivity();setInterval(loadState,3000);setInterval(loadActivity,5000);setInterval(loadSettings,10000);setInterval(loadEnv,15000);}
 boot();
 </script></body></html>
