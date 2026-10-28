@@ -68,3 +68,6 @@ lib/api_server.py.bak.phase2
 # app.html fix + backup
 fix_apphtml.py
 lib/app.html.bak.phase2fix
+# phase3: universal backup net + installer
+*.bak*
+install_phase3_delegate.py
