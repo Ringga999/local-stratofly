@@ -1,10 +1,9 @@
-# lib/api_server.py - Stratofly control-room server (UNIFIED, extended).
-# Single source of truth for the localhost app. Serves lib/app.html at / and
-# a JSON API under /api/*. ThreadingHTTPServer so LLM calls never freeze UI.
-# /api/state is rebuilt from settings (config truth) merged with memory (live).
-# Backwards-compatible: /api/state, /api/activity, /api/report/<id>, /health
-# keep working. main.py's _serve() calls run(port) unchanged.
-import json, os, sys, time, threading, subprocess
+# lib/api_server.py v2 - Stratofly control-room server (Phase 1).
+# Fixes: bubble state shows real idle/ready (not "not implemented yet").
+# Adds: /api/agent/<id> endpoint for detail modal.
+# Adds: Free APIs menu data via /api/free-apis.
+# Still serves lib/app.html at /. ThreadingHTTPServer.
+import json, os, sys, time, threading, hashlib
 from pathlib import Path
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
@@ -23,9 +22,24 @@ ROLE_NAMES = ["Solver", "Architect", "Crafter", "Analyst", "Communicator", "Sent
 ALLOWED_AGENT = {"enabled", "autonomous", "cadence_hours", "brain", "division", "role"}
 
 _MOCK_STOP = threading.Event()
-_MOCK_STOP.set()  # start stopped
+_MOCK_STOP.set()
 _MOCK_THREAD = None
 _PATROL_LOCK = threading.Lock()
+
+FREE_APIS = [
+    {"name": "NVIDIA NIM", "url": "https://build.nvidia.com/settings/api-keys",
+     "desc": "Free serverless APIs for development (default brain provider)"},
+    {"name": "Groq", "url": "https://console.groq.com/keys",
+     "desc": "Fast inference, free tier available"},
+    {"name": "OpenRouter", "url": "https://openrouter.ai/keys",
+     "desc": "Unified API for many models, free models available"},
+    {"name": "DeepSeek", "url": "https://platform.deepseek.com/api_keys",
+     "desc": "Strong coding models, free tier"},
+    {"name": "Mistral", "url": "https://console.mistral.ai/api-keys/",
+     "desc": "European LLM provider, free tier"},
+    {"name": "GitHub (tokenless)", "url": "https://github.com/settings/tokens",
+     "desc": "Public repos readable without token; private needs token"},
+]
 
 def _page():
     return APP_HTML.read_text(encoding="utf-8")
@@ -45,6 +59,14 @@ def _state():
     agents = []
     for aid, a in (cfg.get("agents") or {}).items():
         lv = live.get(aid, {})
+        state = lv.get("state") or "idle"
+        bubble = lv.get("bubble") or ""
+        # Filter useless bubbles from old mock/patrol runs
+        useless = ["not implemented", "waiting..."]
+        if state == "idle" and (not bubble or any(u in bubble.lower() for u in useless)):
+            bubble = "ready - waiting for task"
+        elif not bubble:
+            bubble = state
         agents.append({
             "id": aid,
             "division": a.get("division", "General"),
@@ -53,10 +75,10 @@ def _state():
             "cadence_hours": a.get("cadence_hours", 6),
             "autonomous": bool(a.get("autonomous", True)),
             "enabled": bool(a.get("enabled", True)),
-            "state": (lv.get("state") or "idle"),
+            "state": state,
             "action": lv.get("action", "-"),
             "target": lv.get("target", "-"),
-            "bubble": lv.get("bubble", "waiting..."),
+            "bubble": bubble,
             "since_ts": lv.get("since_ts", 0),
         })
     per = settings.agents_per_provider(cfg)
@@ -65,6 +87,60 @@ def _state():
     return {"schema": 2, "online": True, "ts": time.time(), "agents": agents,
             "per_provider": per, "max_per_provider": caps.get("max_per_provider", 10),
             "max_total": caps.get("max_total_agents", 30)}
+
+def _agent_detail(aid):
+    cfg = settings.load()
+    agents = cfg.get("agents") or {}
+    if aid not in agents:
+        return None
+    a = agents[aid]
+    live = {}
+    try:
+        for e in memory.get_all_agent_states():
+            if e.get("agent") == aid:
+                live = e; break
+    except Exception:
+        pass
+    events = []
+    try:
+        events = memory.recent_events(10)
+        events = [e for e in events if e.get("agent") == aid]
+    except Exception:
+        pass
+    brain_chain = cfg.get("brains", {}).get(a.get("brain", "WORKHORSE"), [])
+    brain_detail = []
+    for entry in brain_chain:
+        m = entry.get("model", "")
+        brain_detail.append({
+            "provider": entry.get("provider"),
+            "model": m,
+            "kind": model_kind.classify(m),
+            "badge": model_kind.badge(m),
+        })
+    role = a.get("role", "Operator")
+    role_modules = {
+        "Solver": ["upload", "delegation", "simulation", "draft_queue"],
+        "Architect": ["audit_viewer", "dependency_graph", "redesign_editor"],
+        "Crafter": ["spec_input", "code_diff", "test_runner", "pr_creator"],
+        "Analyst": ["research_input", "source_list", "trend_chart", "report_gen"],
+        "Communicator": ["platform_selector", "tone_selector", "draft_composer", "approval_queue", "mention_monitor"],
+        "Sentinel": ["scope_selector", "cve_dashboard", "breaking_flags", "compliance_checklist"],
+        "Operator": ["routine_list", "handoff_timeline", "pipeline_health", "ops_summary", "alert_log"],
+    }
+    return {
+        "id": aid, "division": a.get("division", "General"),
+        "role": role, "brain": a.get("brain", "WORKHORSE"),
+        "brain_chain": brain_detail,
+        "cadence_hours": a.get("cadence_hours", 6),
+        "autonomous": bool(a.get("autonomous", True)),
+        "enabled": bool(a.get("enabled", True)),
+        "state": live.get("state", "idle"),
+        "bubble": live.get("bubble") or "ready - waiting for task",
+        "action": live.get("action", "-"),
+        "recent_events": events[:5],
+        "modules": role_modules.get(role, []),
+        "template_role": a.get("template_role", aid),
+    }
 
 def _apply_patch(patch):
     d = settings.load()
@@ -234,6 +310,15 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(settings.load())
             elif p == "/api/env-status":
                 self._send_json(_env_status())
+            elif p == "/api/free-apis":
+                self._send_json({"apis": FREE_APIS})
+            elif p.startswith("/api/agent/"):
+                aid = p.split("/api/agent/")[1].split("?")[0]
+                detail = _agent_detail(aid)
+                if detail:
+                    self._send_json(detail)
+                else:
+                    self._send_json({"error": "agent not found"}, 404)
             elif p.startswith("/api/activity"):
                 limit = 50
                 if "limit=" in p:
@@ -283,12 +368,12 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             self._send_json({"error": str(e)}, 400)
     def log_message(self, format, *args):
-        pass  # silent during demo
+        pass
 
 def run(port=DEFAULT_PORT):
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     print("Stratofly control room  ->  http://localhost:" + str(port) + "/")
-    print("  GET  /api/state /api/settings /api/env-status /api/activity /api/report/<id> /health")
+    print("  GET  /api/state /api/settings /api/env-status /api/free-apis /api/agent/<id> /api/activity /api/report/<id> /health")
     print("  POST /api/ask /api/patrol /api/settings /api/agent/add /api/agent/remove /api/onboard /api/mock/start /api/mock/stop")
     print("  Ctrl+C to stop.")
     try:

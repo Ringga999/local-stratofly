@@ -59,3 +59,6 @@ lib/ask_handler.py
 # full-app installer + server backup
 install_full.py
 lib/api_server.py.bak
+# phase1 installer + backup
+install_phase1.py
+lib/api_server.py.bak.phase1
