@@ -61,7 +61,7 @@ label{font-size:10px;color:var(--mut);display:block;margin-top:6px}
 .module-placeholder b{color:var(--blue)}
 </style></head><body>
 <header><h1>&#9876; Stratofly</h1><span class="tag">control room &middot; one crew, every free API</span>
-<span class="tag" id="online">&#9679; connecting…</span>
+<span class="tag" id="online">&#9679; connecting&#8230;</span>
 <button class="btn btn-primary" data-act="patrol">Run Patrol</button>
 <button class="btn" id="mockBtn" data-act="mock-toggle">Mock: OFF</button>
 <div class="dropdown">
@@ -72,11 +72,11 @@ label{font-size:10px;color:var(--mut);display:block;margin-top:6px}
 <div class="wrap">
  <div class="card full"><h2>Live Crew &middot; Real State (click card for details)</h2><div class="grid" id="crewGrid"></div></div>
  <div class="card"><h2>Onboard &middot; API Key</h2>
-   <div class="statusline" id="envStatus">checking…</div>
+   <div class="statusline" id="envStatus">checking&#8230;</div>
    <label>NVIDIA NIM key (nvapi-...)</label>
    <input type="password" id="apiKey" placeholder="paste key, then Save">
    <button class="btn btn-primary" data-act="onboard">Save key</button>
-   <div class="mut" style="font-size:10px;margin-top:5px">Key written to .env (local, never committed). Free at build.nvidia.com.</div>
+   <div class="mut" style="font-size:10px;margin-top:5px">Key written to .env (local, never committed). Free serverless at build.nvidia.com.</div>
  </div>
  <div class="card"><h2>Add Agent &middot; Role = Capability</h2>
    <form id="addForm">
@@ -95,7 +95,7 @@ label{font-size:10px;color:var(--mut);display:block;margin-top:6px}
      <label>prompt</label><textarea id="askText" placeholder="e.g. Summarize the 3 newest open issues" required></textarea>
      <button class="btn btn-primary" type="submit">Send</button>
    </form>
-   <div class="answer mut" id="askOut">Response appears here…</div>
+   <div class="answer mut" id="askOut">Response appears here&#8230;</div>
  </div>
  <div class="card"><h2>Brains &middot; Model-Kind Aware</h2><div id="brainsBox"></div></div>
  <div class="card"><h2>Free-Tier Limits</h2><div id="limitsBox"></div></div>
@@ -106,25 +106,35 @@ label{font-size:10px;color:var(--mut);display:block;margin-top:6px}
      <button class="btn" type="submit">+ add</button>
    </form>
  </div>
- <div class="card full"><h2>Activity Feed</h2><div id="activityBox" class="mut">loading…</div></div>
+ <div class="card full"><h2>Activity Feed</h2><div id="activityBox" class="mut">loading&#8230;</div></div>
 </div>
 <div class="modal-overlay" id="agentModal">
   <div class="modal">
     <span class="close" data-act="close-modal">&times;</span>
     <h3 id="modalTitle">Agent</h3>
     <div id="modalBody"></div>
+    <div class="modal-section" id="solveSection" style="display:none">
+      <h4>Solve Complex Problem</h4>
+      <label>Project Overview / Big Idea</label>
+      <textarea id="solveOverview" placeholder="Describe your project or big idea in detail..." style="min-height:60px"></textarea>
+      <label>Goal (What do you want to achieve?)</label>
+      <textarea id="solveGoal" placeholder="e.g. Build an e-commerce platform with user auth..." style="min-height:40px"></textarea>
+      <label>Timeline / Constraints</label>
+      <textarea id="solveTimeline" placeholder="e.g. 3 months, limited budget, small team..." style="min-height:30px"></textarea>
+      <button class="btn btn-primary" data-act="run-solve" id="runSolveBtn" style="margin-top:8px">Run Solver</button>
+      <div class="answer mut" id="solveOut" style="margin-top:8px">Solver response will appear here...</div>
+    </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
 <script>
 function $(id){return document.getElementById(id);}
-function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function esc(s){s=String(s);var m={"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"};var o="";for(var i=0;i<s.length;i++){o+=m[s[i]]||s[i];}return o;}
 async function jget(u){var r=await fetch(u);if(!r.ok)throw new Error(u+" -> "+r.status);return r.json();}
 async function jpost(u,body){var r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})});return r.json();}
 function toast(msg,kind){var t=$("toast");t.textContent=msg;t.className="toast show "+(kind||"");setTimeout(function(){t.className="toast";},3000);}
 var CFG={roles:[],brains:{},agents:{},limits:{},repos:[]};
 var STATE={agents:[]};
-
 async function loadSettings(){
   var s=await jget("/api/settings");
   CFG.roles=Object.keys(s.roles||{});
@@ -135,7 +145,6 @@ async function loadSettings(){
   renderBrains();renderLimits();renderRepos();
 }
 function fillSelect(sel,items){sel.innerHTML="";for(var i=0;i<items.length;i++){var o=document.createElement("option");o.value=items[i];o.textContent=items[i];sel.appendChild(o);}}
-
 async function loadState(){
   var s=await jget("/api/state");STATE=s;$("online").innerHTML=s.online?'<span class="ok">&#9679; online</span>':'<span class="no">&#9679; offline</span>';$("clock").textContent="updated "+new Date().toLocaleTimeString();renderCrew(s.agents||[]);
 }
@@ -154,7 +163,6 @@ async function loadFreeApis(){
     $("freeApisMenu").innerHTML=r.apis.map(function(a){return '<a href="'+esc(a.url)+'" target="_blank" rel="noopener"><b>'+esc(a.name)+'</b><small>'+esc(a.desc)+'</small></a>';}).join("");
   }catch(e){}
 }
-
 function renderCrew(list){
   $("crewGrid").innerHTML=list.map(function(a){
     var st=(a.state||"idle").toLowerCase();
@@ -185,11 +193,10 @@ function renderLimits(){
   $("limitsBox").innerHTML=(bars||'<span class="mut">no providers in use</span>')+'<div style="margin-top:7px">total <span class="mono">'+tot+"/"+mt+'</span><div class="bar '+(tfull?"full":"")+'"><i style="width:'+Math.min(100,tot/mt*100)+'%"></i></div></div>';
 }
 function renderRepos(){
-  $("reposBox").innerHTML=(CFG.repos.length?CFG.repos:["(none)"]).map(function(r,i){
+  $("reposBox").innerHTML=(CFG.repos.length?CFG.repos:["(none)"]).map(function(r){
     if(r==="(none)")return '<li><span class="mut">(none)</span></li>';
     return '<li><span class="mono">'+esc(r)+'</span><button class="btn btn-danger" data-act="rm-repo" data-id="'+esc(r)+'">x</button></li>';}).join("");
 }
-
 async function openAgentModal(aid){
   try{
     var d=await jget("/api/agent/"+encodeURIComponent(aid));
@@ -197,25 +204,33 @@ async function openAgentModal(aid){
     var brainHtml=d.brain_chain.map(function(b){return '<span class="mono">'+esc(b.provider)+'/'+esc(b.model)+'</span> <span class="badge">'+esc(b.kind)+'</span>';}).join("<br>")||'<span class="mut">(empty)</span>';
     var eventsHtml=d.recent_events.length?d.recent_events.map(function(e){return '<div class="evt"><b>'+esc(e.state||"")+'</b> &middot; '+esc(e.action||"")+' &middot; '+esc(e.bubble||"")+'</div>';}).join(""):'<span class="mut">no recent events</span>';
     var moduleLabels={upload:"Multi-modal Upload (PDF/image/link)",delegation:"Delegation Board",simulation:"Simulation Runner",draft_queue:"Draft Approval Queue",audit_viewer:"Audit Report Viewer",dependency_graph:"Dependency Graph (text)",redesign_editor:"Redesign Proposal Editor",spec_input:"Spec Input",code_diff:"Code Diff Viewer",test_runner:"Test Runner + Results",pr_creator:"PR Creator",research_input:"Research Input",source_list:"Source List with Citations",trend_chart:"Trend Chart (text)",report_gen:"Report Generator",platform_selector:"Platform Selector (X/LinkedIn/devlog)",tone_selector:"Tone Selector",draft_composer:"Draft Composer",approval_queue:"Approval Queue + Telegram",mention_monitor:"Mention Monitor",scope_selector:"Scope Selector",cve_dashboard:"CVE Dashboard",breaking_flags:"Breaking-Change Flags",compliance_checklist:"Compliance Checklist",routine_list:"Routine List + Run Buttons",handoff_timeline:"Handoff Timeline",pipeline_health:"Pipeline Health",ops_summary:"Ops Summary Generator",alert_log:"Alert Log"};
-    var modulesHtml=d.modules.length?d.modules.map(function(m){return '<div class="module-placeholder"><b>'+esc(moduleLabels[m]||m)+'</b><br><span class="mut">Coming in Phase 2 (post-demo). This module will be enabled for '+esc(d.role)+' agents.</span></div>';}).join(""):'<span class="mut">No specialized modules for this role yet.</span>';
+    var modulesHtml=d.modules.length?d.modules.map(function(m){return '<div class="module-placeholder"><b>'+esc(moduleLabels[m]||m)+'</b><br><span class="mut">Coming in Phase 3 (post-demo). This module will be enabled for '+esc(d.role)+' agents.</span></div>';}).join(""):'<span class="mut">No specialized modules for this role yet.</span>';
     $("modalBody").innerHTML=
       '<div class="modal-section"><h4>Brain Chain</h4>'+brainHtml+'</div>'+
       '<div class="modal-section"><h4>Current State</h4><div><b>'+esc(d.state)+'</b>: '+esc(d.bubble)+'</div><div class="mut" style="margin-top:4px">Action: '+esc(d.action)+' &middot; Cadence: '+d.cadence_hours+'h &middot; Autonomous: '+(d.autonomous?"yes":"no")+' &middot; Enabled: '+(d.enabled?"yes":"no")+'</div></div>'+
       '<div class="modal-section"><h4>Role-Specific Modules ('+esc(d.role)+')</h4>'+modulesHtml+'</div>'+
       '<div class="modal-section"><h4>Recent Events</h4>'+eventsHtml+'</div>'+
-      '<div style="display:flex;gap:6px;margin-top:10px">'+
+      '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">'+
+        '<button class="btn btn-primary" data-act="open-solve" data-id="'+esc(d.id)+'">Solve Problem</button>'+
         '<button class="btn" data-act="toggle-auto" data-id="'+esc(d.id)+'">'+(d.autonomous?"auto:ON":"auto:OFF")+'</button>'+
         '<button class="btn" data-act="toggle-en" data-id="'+esc(d.id)+'">'+(d.enabled?"live":"paused")+'</button>'+
         '<button class="btn btn-danger" data-act="rm-agent" data-id="'+esc(d.id)+'">Remove Agent</button>'+
       '</div>';
+    var ob=document.querySelector('#modalBody [data-act="open-solve"]');if(ob&&d.role!=="Solver")ob.style.display="none";
+    var ss=$("solveSection");if(ss)ss.style.display="none";
+    var sov=$("solveOverview");if(sov)sov.value="";
+    var sgl=$("solveGoal");if(sgl)sgl.value="";
+    var stl=$("solveTimeline");if(stl)stl.value="";
+    var so=$("solveOut");if(so){so.textContent="Solver response will appear here...";so.className="answer mut";}
     $("agentModal").classList.add("show");
   }catch(e){toast("error loading agent: "+e.message,"err");}
 }
-
 async function act(a,id,btn){
   try{
     if(a==="open-agent"){openAgentModal(id);return;}
     if(a==="close-modal"){$("agentModal").classList.remove("show");return;}
+    if(a==="open-solve"){var ss=$("solveSection");if(ss)ss.style.display="block";var rb=$("runSolveBtn");if(rb)rb.setAttribute("data-id",id);return;}
+    if(a==="run-solve"){var ov=$("solveOverview").value.trim();var gl=$("solveGoal").value.trim();var tl=$("solveTimeline").value.trim();if(!ov&&!gl){toast("fill at least overview or goal","err");return;}var full="PROJECT OVERVIEW: "+ov+" | GOAL: "+gl+" | TIMELINE: "+tl;var out=$("solveOut");out.className="answer mut";out.textContent="Solver is thinking...";var rb=$("runSolveBtn");var aid=rb?rb.getAttribute("data-id"):(id||"scout");jpost("/api/solve",{prompt:full,agent_id:aid}).then(function(r){out.className="answer";out.textContent=r.answer||(r.error||"(empty)");}).catch(function(e){out.className="answer";out.textContent="error: "+e.message;});return;}
     if(a==="patrol"){var r=await jpost("/api/patrol",{});toast(r.msg||"patrol started","ok");return;}
     if(a==="mock-toggle"){var on=btn.textContent.indexOf("ON")>=0;var r=await jpost(on?"/api/mock/stop":"/api/mock/start",{});toast(r.msg||(on?"mock stopped":"mock running"),"ok");btn.textContent="Mock: "+(on?"OFF":"ON");return;}
     if(a==="onboard"){var key=$("apiKey").value.trim();if(!key){toast("paste a key first","err");return;}var r=await jpost("/api/onboard",{key:key});toast(r.msg||"saved",r.ok?"ok":"err");if(r.ok){$("apiKey").value="";loadEnv();}return;}
@@ -225,7 +240,6 @@ async function act(a,id,btn){
   }catch(e){toast("error: "+e.message,"err");}
 }
 document.addEventListener("click",function(ev){var b=ev.target.closest("[data-act]");if(!b)return;act(b.getAttribute("data-act"),b.getAttribute("data-id"),b);});
-
 $("addForm").addEventListener("submit",async function(ev){ev.preventDefault();
   var body={id:$("aId").value.trim(),division:$("aDiv").value.trim()||"General",role:$("aRole").value,brain:$("aBrain").value,cadence_hours:parseInt($("aCad").value,10)||6,autonomous:$("aAuto").checked};
   if(!body.id){toast("id required","err");return;}
@@ -233,7 +247,7 @@ $("addForm").addEventListener("submit",async function(ev){ev.preventDefault();
 });
 $("askForm").addEventListener("submit",async function(ev){ev.preventDefault();
   var prompt=$("askText").value.trim();if(!prompt){toast("type a prompt","err");return;}
-  var agent=$("askAgent").value||"scout";var out=$("askOut");out.className="answer mut";out.textContent="thinking…";
+  var agent=$("askAgent").value||"scout";var out=$("askOut");out.className="answer mut";out.textContent="thinking...";
   try{var r=await jpost("/api/ask",{prompt:prompt,agent_id:agent});out.className="answer";out.textContent=r.answer||(r.error||"(empty response)");}catch(e){out.className="answer";out.textContent="error: "+e.message;}
 });
 $("repoForm").addEventListener("submit",async function(ev){ev.preventDefault();
@@ -241,8 +255,7 @@ $("repoForm").addEventListener("submit",async function(ev){ev.preventDefault();
   var rs=CFG.repos.slice();if(rs.indexOf(v)<0)rs.push(v);
   try{await jpost("/api/settings",{repos:rs});toast("repo added","ok");$("repoAdd").value="";await loadSettings();}catch(e){toast("error: "+e.message,"err");}
 });
-
-async function boot(){try{await loadSettings();}catch(e){toast("settings load failed: "+e.message,"err");}try{await loadEnv();}catch(e){}await loadFreeApis();await loadState();await loadActivity();
+async function boot(){try{await loadSettings();}catch(e){toast("settings load failed: "+e.message,"err");}try{await loadEnv();}catch(e){}try{await loadFreeApis();}catch(e){}await loadState();await loadActivity();
   setInterval(loadState,3000);setInterval(loadActivity,5000);setInterval(loadSettings,10000);setInterval(loadEnv,15000);}
 boot();
 </script></body></html>

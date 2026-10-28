@@ -276,6 +276,34 @@ def _mock_stop():
     _MOCK_STOP.set()
     return {"ok": True, "msg": "mock stopped"}
 
+
+def _solve(body):
+    prompt = (body.get("prompt") or "").strip()
+    agent = (body.get("agent_id") or "scout").strip()
+    if not prompt:
+        return {"ok": False, "answer": "", "error": "empty prompt"}
+    try:
+        # Import persona module to get SOLVER_PERSONA
+        from lib import persona
+        system_prompt = getattr(persona, "SOLVER_PERSONA", None)
+        # Call provider_hub.think with Solver persona
+        from lib import provider_hub
+        # Get agent brain chain
+        cfg = settings.load()
+        agent_cfg = (cfg.get("agents") or {}).get(agent, {})
+        brain = agent_cfg.get("brain", "WORKHORSE")
+        response = provider_hub.think(
+            brain=brain,
+            system=system_prompt or "",
+            user=prompt,
+            agent_id=agent,
+            temperature=0.7,
+            max_tokens=2048
+        )
+        return {"ok": True, "answer": response}
+    except Exception as e:
+        return {"ok": False, "answer": "", "error": str(e)}
+
 class Handler(BaseHTTPRequestHandler):
     def _send_json(self, data, status=200):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
@@ -355,6 +383,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(_remove_agent(b))
             elif p == "/api/onboard":
                 self._send_json(_onboard(b))
+            elif p == "/api/solve":
+                self._send_json(_solve(b))
             elif p == "/api/ask":
                 self._send_json(_ask(b))
             elif p == "/api/patrol":
