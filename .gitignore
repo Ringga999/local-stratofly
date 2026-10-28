@@ -62,3 +62,9 @@ lib/api_server.py.bak
 # phase1 installer + backup
 install_phase1.py
 lib/api_server.py.bak.phase1
+# phase2 solver installer + backup
+install_phase2_solver.py
+lib/api_server.py.bak.phase2
+# app.html fix + backup
+fix_apphtml.py
+lib/app.html.bak.phase2fix
