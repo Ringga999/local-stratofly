@@ -208,3 +208,103 @@ Phase 3 (Thu): role module slots per role (the tidy layer); Sentinel CVE
 4. Sentinel flags or blocks but cannot auto-fix (that is Crafter work).
 5. Operator runs routines but cannot modify routine definitions (user job).
 6. UI modules must never exceed a role privileges (mirror rights, not more).
+
+
+## MODULE CATALOG PER ROLE (Post-Hackathon Roadmap)
+
+Status legend: [LIVE] = implemented and running; [PLANNED] = roadmap, not yet coded.
+
+### SOLVER (The Orchestrator)
+[LIVE] Chatbot intake dengan pertanyaan klarifikasi (tujuan, constraint, deadline).
+[LIVE] Problem decomposition ke 3-5 fase dengan deliverables.
+[LIVE] Delegation Board: mendelegasikan sub-task ke agen lain via /api/delegate.
+[PLANNED] Problem framing canvas: masalah vs gejala, asumsi, batasan.
+[PLANNED] Framework otomatis: 5 Whys, fishbone, SWOT, RICE, decision matrix.
+[PLANNED] Hypothesis & assumption tracker.
+[PLANNED] Solution generator + scoring (impact, effort, risiko, biaya).
+[PLANNED] What-if simulation / scenario planning.
+[PLANNED] Risk register & mitigation plan.
+[PLANNED] Knowledge base/RAG: ambil playbook, dokumen, kasus lama.
+[PLANNED] Action plan & success metrics (PIC, timeline, KPI).
+[PLANNED] Output: recommendation memo, decision log, post-mortem.
+
+### ARCHITECT (The Forest-Viewer)
+[LIVE] Agent detail modal dengan brain chain + role modules.
+[PLANNED] Requirement-to-architecture: ubah kebutuhan jadi rancangan sistem.
+[PLANNED] Diagram generator: C4, UML, ERD, sequence, flowchart, deployment.
+[PLANNED] Tech stack recommender dengan trade-off matrix.
+[PLANNED] API contract & data model designer (OpenAPI/Swagger, JSON Schema).
+[PLANNED] Architecture review checklist (security, scalability, compliance).
+[PLANNED] ADR generator (Architecture Decision Record).
+[PLANNED] Blueprint & template library (SaaS, marketplace, data platform).
+[PLANNED] Integration/dependency map.
+[PLANNED] Task breakdown untuk Crafter (pecah blueprint jadi issue/tiket).
+[PLANNED] Review repo/arsitektur existing (deteksi bottleneck, coupling).
+[PLANNED] Handoff package ke Crafter/Analyst (diagram, dokumen, open questions).
+
+### CRAFTER (The Technical Hands)
+[LIVE] Code generation via provider_hub.think() dengan persona Crafter.
+[PLANNED] Repo connect: GitHub/GitLab/Bitbucket.
+[PLANNED] Issue-to-code / PR generator.
+[PLANNED] Refactor, debugging, explain code.
+[PLANNED] Test generation & coverage, bug reproduction.
+[PLANNED] Code review + security scan + dependency audit.
+[PLANNED] Sandbox execution & CI/CD integration.
+[PLANNED] Documentation & changelog generator.
+[PLANNED] Pair-programming chatbot dengan konteks repo.
+[PLANNED] Secrets/environment management dengan approval.
+
+### ANALYST (The Eyes and Synthesizer)
+[LIVE] Web research via provider_hub.think() dengan persona Analyst.
+[PLANNED] Connector data: CSV/Excel, Google Sheets, SQL, API, BI tools.
+[PLANNED] Data profiling & cleaning (kualitas, missing value, outlier).
+[PLANNED] Natural language to SQL/query + chart otomatis.
+[PLANNED] EDA & insight narration (temuan data dalam bahasa manusia).
+[PLANNED] Dashboard/report generator + laporan terjadwal.
+[PLANNED] KPI monitoring & anomaly alert.
+[PLANNED] Forecasting, segmentasi, cohort analysis.
+[PLANNED] A/B test designer (hipotesis, metrik, sample size).
+[PLANNED] Data privacy & masking sebelum data dipakai role lain.
+
+### COMMUNICATOR (The Public Voice)
+[LIVE] Draft-first workflow (tidak pernah post tanpa approval).
+[PLANNED] Multi-format editor: artikel, blog, script video, caption, email.
+[PLANNED] Brand voice & style guide (tone, istilah, larangan kata).
+[PLANNED] Grammar, readability, SEO, fact-check, citation.
+[PLANNED] Content repurposing: artikel -> thread, caption, script video.
+[PLANNED] Versioning, diff, komentar, approval workflow.
+[PLANNED] Multi-bahasa/localization.
+[PLANNED] Asset suggestion (thumbnail, gambar, CTA).
+[PLANNED] Social media connector (Mode B: manual token; Mode A: OAuth roadmap).
+[PLANNED] Scheduling & auto-publish (dengan human approval).
+
+### SENTINEL (The Shield)
+[LIVE] Security audit via persona Sentinel.
+[PLANNED] Dependency & CVE tracking.
+[PLANNED] Breaking-change detection (API/SDK drift).
+[PLANNED] Compliance checklist (OWASP, GDPR, dll).
+[PLANNED] Security report generator.
+[PLANNED] Block-merge recommendation (tidak auto-fix, hanya flag).
+
+### OPERATOR (The Clock)
+[LIVE] Scheduled routines via scheduler.py + cadence_hours.
+[LIVE] Patrol command (Run Patrol di UI).
+[PLANNED] Handoff coordination (Scout -> Triage -> Crafter).
+[PLANNED] Pipeline health monitoring.
+[PLANNED] Ops summary generator.
+[PLANNED] Failure alert + escalation.
+[PLANNED] Workflow builder & scheduler (trigger manual, cron, webhook, event).
+
+### CROSS-ROLE CAPABILITIES (Platform-Wide)
+[LIVE] Agent-to-agent handoff via /api/delegate + memory.sqlite3.
+[LIVE] Shared project memory (semua agen baca konteks yang sama).
+[LIVE] Human-in-the-loop approval (draft-first untuk Communicator).
+[LIVE] Free-tier limit enforcement (max 10 agen per provider).
+[PLANNED] Connector marketplace + OAuth auto-connect (IG, FB, X, LinkedIn).
+[PLANNED] Audit log & permission (siapa melakukan apa, kapan, dengan data apa).
+[PLANNED] Cost & usage control (kuota token, batas API, alert biaya).
+[PLANNED] Sandbox untuk aksi berisiko (uji sebelum production).
+[PLANNED] Feedback & evaluation loop (rating output, success rate).
+[PLANNED] Template & role marketplace (workflow siap pakai).
+[PLANNED] Role Registry (load dari file/DB, bukan hardcoded).
+[PLANNED] Role Generator/Composer (user deskripsi -> sistem susun role).
