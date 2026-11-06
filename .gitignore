@@ -72,3 +72,6 @@ lib/app.html.bak.phase2fix
 *.bak*
 install_phase3_delegate.py
 install_merge_fix.py
+install_*.py
+fix_*.py
+settings_src.txt

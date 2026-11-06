@@ -3,7 +3,7 @@
 # Adds: /api/agent/<id> endpoint for detail modal.
 # Adds: Free APIs menu data via /api/free-apis.
 # Still serves lib/app.html at /. ThreadingHTTPServer.
-import json, os, sys, time, threading, hashlib
+import json, os, sys, time, threading, hashlib, re
 from pathlib import Path
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
@@ -305,6 +305,27 @@ def _solve(body):
         return {"ok": False, "answer": "", "error": str(e)}
 
 
+def _parse_delegations(raw, agents):
+    dels = []
+    seen = set()
+    for m in re.findall(r"\[DELEGATE:\s*([^\|\]]+)\|([^\]]+)\]", raw or ""):
+        tid = m[0].strip(); tsk = m[1].strip()
+        if not tid or not tsk:
+            continue
+        if "<" in tid or ">" in tid or "<" in tsk or ">" in tsk:
+            continue
+        if tid not in agents:
+            continue
+        key = (tid.lower(), tsk.lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        dels.append({"agent": tid, "task": tsk, "valid": True})
+        if len(dels) >= 4:
+            break
+    return dels
+
+
 def _solve_plan(body):
     prompt = (body.get("prompt") or "").strip()
     agent = (body.get("agent_id") or "scout").strip()
@@ -319,15 +340,17 @@ def _solve_plan(body):
         crew = "\n".join(("- " + aid + " (role: " + (a.get("role") or "Operator") + ")") for aid, a in agents.items())
         sys_prompt = (getattr(persona, "SOLVER_PERSONA", "") or "") + (
             "\n\nAVAILABLE CREW - you may delegate ONLY to these exact ids:\n" + crew +
-            "\n\nAfter your narrative plan, append 0-4 delegation lines, each EXACTLY:"
-            "\n[DELEGATE: <agent_id> | <short concrete sub-task for that agent>]"
-            "\nUse only ids from the list above. If the work is single-step, output zero DELEGATE lines."
+            "\n\nDELEGATION EXAMPLES (follow this format EXACTLY):"
+            "\n[DELEGATE: scout | Conduct market research on e-commerce platforms]"
+            "\n[DELEGATE: scribe | Draft technical documentation]"
+            "\n[DELEGATE: crafter | Implement backend API]"
+            "\n\nYou MUST use the bracket format [DELEGATE: <id> | <task>] if delegating."
+            "\nIf single-step work, output ZERO delegation lines."
         )
+        # Append concrete examples to user prompt for stronger compliance
+        prompt = prompt + "\n\n---\nDELEGATION FORMAT EXAMPLE (copy this style):\n[DELEGATE: scout | Research market]\n[DELEGATE: scribe | Write docs]"
         raw = provider_hub.think(brain=brain, system=sys_prompt, user=prompt, agent_id=agent, temperature=0.6, max_tokens=2048)
-        dels = []
-        for m in re.findall(r"\[DELEGATE:\s*([^\|\]]+)\|([^\]]+)\]", raw or ""):
-            tid = m[0].strip(); tsk = m[1].strip()
-            dels.append({"agent": tid, "task": tsk, "valid": tid in agents})
+        dels = _parse_delegations(raw, agents)
         return {"ok": True, "answer": raw or "", "delegations": dels}
     except Exception as e:
         return {"ok": False, "answer": "", "delegations": [], "error": str(e)}
