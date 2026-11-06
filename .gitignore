@@ -71,3 +71,4 @@ lib/app.html.bak.phase2fix
 # phase3: universal backup net + installer
 *.bak*
 install_phase3_delegate.py
+install_merge_fix.py

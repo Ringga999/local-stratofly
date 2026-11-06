@@ -69,10 +69,20 @@ def defaults() -> dict:
         },
     }
 
+FILE_OWNED_KEYS = {"agents"}
+
+
 def _merge(base: dict, incoming: dict) -> dict:
     # Round-trip safe: keep unknown keys, fill missing from base.
+    # FILE_OWNED_KEYS: entity collections where the file is the ONLY truth,
+    # so a user deletion sticks instead of being resurrected from the
+    # template defaults on every load(). Missing top-level sections are
+    # still filled from base (schema migration keeps working).
     out = dict(base)
     for k, v in incoming.items():
+        if k in FILE_OWNED_KEYS:
+            out[k] = json.loads(json.dumps(v))
+            continue
         if isinstance(v, dict) and isinstance(out.get(k), dict):
             out[k] = _merge(out[k], v)
         else:
