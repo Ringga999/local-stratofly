@@ -11,7 +11,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 from lib import memory, settings, model_kind, ask_handler, scheduler, mock
-from lib import onboard, persona
+from lib import onboard, persona, chain_relay
 from config import REPORTS_DIR
 
 HERE = Path(__file__).resolve().parent
@@ -199,6 +199,7 @@ def _add_agent(body):
         "division": (body.get("division") or "General"), "template_role": aid,
     }
     settings.save(d)
+    chain_relay.anchor_memory_async(aid, "agent_added:" + aid + ":" + role + ":" + brain)
     _, warn = settings.check_total(d)
     msg = "+ agent '" + aid + "' as " + role + " on " + prov + "/" + brain
     if warn:
@@ -211,6 +212,7 @@ def _remove_agent(body):
     if aid in d.get("agents", {}):
         del d["agents"][aid]
         settings.save(d)
+        chain_relay.anchor_memory_async(aid, "agent_removed:" + aid)
         return {"ok": True, "msg": "removed " + aid}
     return {"ok": False, "msg": "no such agent"}
 
@@ -230,6 +232,7 @@ def _ask(body):
         return {"ok": False, "answer": "", "error": "empty prompt"}
     try:
         ans = ask_handler.ask(prompt, agent_id=agent)
+        chain_relay.anchor_memory_async(agent, "ask:" + prompt[:64])
         return {"ok": True, "answer": ans}
     except Exception as e:
         return {"ok": False, "answer": "", "error": str(e)}
@@ -375,9 +378,17 @@ def _delegate(body):
             memory.log_event(to_agent, "working", "sub_task", frm, "executing for " + frm + ": " + task[:40], -1)
         except Exception:
             pass
+        chain_relay.anchor_memory_async(to_agent, "delegated:" + frm + "->" + to_agent + ":" + task[:64])
         return {"ok": True, "answer": ans or "", "agent": to_agent}
     except Exception as e:
         return {"ok": False, "answer": "", "error": str(e)}
+
+def _memory_status():
+    return chain_relay.get_status()
+
+def _memory_mode(body):
+    m = chain_relay.set_mode(body.get("mode") or "")
+    return {"ok": True, "mode": m, "status": chain_relay.get_status()}
 
 class Handler(BaseHTTPRequestHandler):
     def _send_json(self, data, status=200):
@@ -440,6 +451,8 @@ class Handler(BaseHTTPRequestHandler):
                         self._send_json({"error": "report not found"}, 404)
                 except Exception:
                     self._send_json({"error": "invalid id"}, 400)
+            elif p == "/api/memory/status":
+                self._send_json(_memory_status())
             elif p == "/health":
                 self._send_json({"status": "ok"})
             else:
@@ -470,6 +483,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(_mock_start())
             elif p == "/api/mock/stop":
                 self._send_json(_mock_stop())
+            elif p == "/api/memory/mode":
+                self._send_json(_memory_mode(b))
             else:
                 self._send_json({"error": "not found"}, 404)
         except Exception as e:
