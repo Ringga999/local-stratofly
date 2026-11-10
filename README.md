@@ -1,22 +1,22 @@
 # Stratofly
 
-**Open-source multi-agent orchestration engine with $0 modality - all agents run on free-tier LLM APIs.**
+Many agents. One crew. No subscription.
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Status: Alpha](https://img.shields.io/badge/status-alpha-orange.svg)](https://github.com/Ringga999/local-stratofly)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ---
 
 ## What is Stratofly?
 
-Stratofly is a **local-first multi-agent platform** where 7 specialized AI agents collaborate to solve complex problems. Unlike expensive cloud-based AI services, Stratofly runs entirely on **free-tier LLM APIs** (NVIDIA NIM, Groq, OpenRouter) with zero subscription cost.
+Stratofly is a **local-first multi-agent orchestration engine**. Most AI tools hand you a single assistant that waits for the next prompt; Stratofly assembles a crew — distinct agents with distinct personalities, distinct skills, and the ability to pass work to one another — running on your own machine. It draws entirely on free-tier LLM APIs (NVIDIA NIM, Groq, OpenRouter), so you can build, experiment, and break things without ever opening your wallet.
 
-**Think of it as:** Your personal AI crew - a Solver who breaks down problems, an Architect who designs solutions, a Crafter who writes code, an Analyst who researches data, a Communicator who drafts content, a Sentinel who guards security, and an Operator who runs routines - all working together on your local machine.
+Let us be honest up front: **this is an engine, not a finished product.** It is in alpha. The foundation is alive today — a growing catalog of roles, a three-tier brain chain, local memory, and Solver orchestration. Much of what each role can do is still being built out, and that unfinished space is exactly where the next contributor walks in.
+
+The crew already includes a Solver that tears a problem apart and hands the pieces out, an Architect that designs systems, a Crafter that writes the code, an Analyst that researches and synthesizes, a Communicator that drafts content, a Sentinel that watches for security, and an Operator that keeps routines alive — and nothing in the design treats that list as a ceiling. A role here is declared as *data* (a persona, a capability set, a privilege boundary) rather than compiled into the engine, which is the whole reason the catalog can widen toward hundreds of roles without rebuilding the machine.
 
 ---
 
-## Quick Start (30 seconds)
+## Quick Start
 
 ```bash
 # Clone the repo
@@ -37,100 +37,77 @@ python main.py serve
 
 **Open browser:** http://localhost:8765/
 
-**That's it.** No API keys required to explore. To connect real LLMs, add your free NVIDIA NIM key via the web UI.
+You can explore the control room without any key. To bring agents to life, paste a free NVIDIA NIM key through the web UI — it is written to a local `.env` and never sent anywhere.
 
 ---
 
 ## Architecture Overview
 
-```
-Web UI (app.html)
-   | Live Crew | Add Agent | Command Crew | Brains | Activity |
-        |
-        v
-api_server.py (HTTP)
-   /api/state | /api/ask | /api/solve | /api/delegate
-        |
-        +-- settings.py, memory.py, scheduler.py, persona.py, provider_hub.py
-              |
-              v
-        LLM Providers (NVIDIA | Groq | OpenRouter)
-```
-
 **Key Components:**
-- **settings.py** - Configuration management (agents, brains, limits)
-- **memory.py** - SQLite-based event logging + agent state tracking
-- **scheduler.py** - Autonomous agent patrol system (scheduled tasks)
-- **persona.py** - Role-specific system prompts (Solver, Architect, etc.)
-- **provider_hub.py** - Unified interface to 3-tier brain chains
+- **settings.py** — Configuration management (agents, brains, limits)
+- **memory.py** — SQLite-based event logging + agent state tracking
+- **scheduler.py** — Autonomous agent patrol system (scheduled tasks)
+- **persona.py** — Role-specific system prompts
+- **provider_hub.py** — Unified interface to the 3-tier brain chains
+
+The web control room talks to a lightweight HTTP server (`ThreadingHTTPServer`, no web framework), which routes to the components above and onward to the LLM providers.
 
 ---
 
 ## Features
 
-### 7 Specialized Agent Roles
+### A role system built to grow, not to a fixed roster
 
-| Role | Expertise | Tools |
-|------|-----------|-------|
-| **Solver** | Problem decomposition, orchestration | Task-solving, supervise, simulate |
-| **Architect** | System design, restructuring | Read-structure, propose-change |
-| **Crafter** | Code generation, testing | Write-code, run-tests |
-| **Analyst** | Research, data synthesis | Read-web, read-file, produce-report |
-| **Communicator** | Content drafting, engagement | Draft, send-for-approval |
-| **Sentinel** | Security, dependency audit | Read-security, flag-change |
-| **Operator** | Routines, handoffs | Run-routine, hand-off |
+Because a role is data and not code, the engine you run today is already cut to carry far more roles than it currently ships. Adding one means *defining* one, not rebuilding the machine. The roster standing here now is simply the first to arrive.
 
 ### 3-Tier Brain Chains
 
-Each agent uses a **brain chain** - a sequence of LLM models optimized for different task complexities:
+Each agent uses a **brain chain** — a sequence of LLM models matched to the workload:
 
-- **WORKHORSE** - Fast, cheap models for routine tasks (e.g., deepseek-coder-6.7b)
-- **SPECIALIST** - Mid-tier models for complex reasoning (e.g., nemotron-3.5-lightning)
-- **LIFELINE** - Premium models for critical decisions (fallback)
+- **WORKHORSE** — Fast, cheap models for routine tasks
+- **SPECIALIST** — Mid-tier models for complex reasoning
+- **LIFELINE** — Premium models as the safety net for critical decisions
 
 ### Solver Orchestration
 
-The **Solver** role can now:
-1. Receive complex problems via the web UI
-2. Decompose them into 3-5 concrete phases
-3. **Delegate sub-tasks** to other agents via the Delegation Board
-4. Each delegated agent responds in their own persona
+The **Solver** is the heart of the engine. Give it a messy, complex problem and it:
+1. Receives the problem via the web UI
+2. Decomposes it into concrete phases
+3. **Delegates sub-tasks** to other agents through the Delegation Board
+4. Lets each delegated agent answer in its own persona, with its own context — not as an echo of the Solver
 
 ### Free-Tier Safety Limits
 
-Stratofly enforces **hard limits** to prevent accidental API overuse:
-- **Max 10 agents per provider** (e.g., NVIDIA NIM free tier)
-- **Max 30 agents total**
-- Graceful error messages when limits are reached
+Free APIs are generous — until they are not. The engine enforces **configurable hard ceilings** on how many agents each provider may carry (by default, ten per provider and thirty overall), with graceful errors when a limit is reached, so one careless afternoon never becomes a surprise invoice.
 
 ---
 
 ## Web UI Features
 
-- **Live Crew** - Real-time agent states (working, idle, alert, coffee break)
-- **Agent Detail Modal** - Brain chain, role-specific modules, recent events
-- **Free APIs Menu** - Quick links to get API keys
-- **Add Agent Form** - Create new agents with role, brain, cadence
-- **Command Crew** - Send free prompts to any agent
-- **Activity Feed** - Real-time event logging
-- **Mock Mode** - Simulate agent behavior for demos (no API calls)
+- **Live Crew** — Real-time agent states (working, idle, alert, coffee break)
+- **Agent Detail Modal** — Brain chain, role-specific modules, recent events
+- **Free APIs Menu** — Quick links to get API keys
+- **Add Agent Form** — Create new agents with role, brain, cadence
+- **Command Crew** — Send free prompts to any agent
+- **Activity Feed** — Real-time event logging
+- **Mock Mode** — Simulate agent behavior for demos (no API calls)
 
 ---
 
 ## Documentation
 
-Detailed specs are available in `docs/`:
+Detailed specs live in `docs/`:
 
-- **ROLE-BLUEPRINT-SPEC-v1.md** - 7 roles, capabilities, tools, privileges
-- **MEMORY-SPEC-v1.md** - SQLite schema, state tracking
-- **SETTINGS-SPEC-v1.2.md** - Configuration structure
-- **WEB3-INTEGRATION-SPEC-v1.md** - Blockchain anchoring roadmap
+- **ROLE-BLUEPRINT-SPEC-v1.md** — The role catalog: capabilities, tools, privileges
+- **MEMORY-SPEC-v1.md** — SQLite schema, state tracking
+- **SETTINGS-SPEC-v1.2.md** — Configuration structure
+- **WEB3-INTEGRATION-SPEC-v1.md** — The optional on-chain anchoring layer
 
 ---
 
 ## Contributing
 
-**We welcome contributions from developers of all skill levels!**
+**We welcome contributions from developers of all skill levels.**
 
 ### How to Contribute
 
@@ -139,91 +116,27 @@ Detailed specs are available in `docs/`:
 3. **Install dependencies:** `pip install -r requirements.txt`
 4. **Run the server:** `python main.py serve`
 5. **Make your changes** and test locally
-6. **Commit with clear messages:** `feat: add new agent role`
+6. **Commit with clear messages:** `feat: add a new role` or `fix: ...`
 7. **Push and open a Pull Request**
 
-### Adding a New Agent Role
+### Adding a New Role
 
-Want to add a new role (e.g., VideoEditor, SocialMedia)? Here's how:
-
-1. **Edit `lib/settings.py`** - Add role definition to `defaults()["roles"]`
-2. **Edit `lib/persona.py`** - Add system prompt for the role
-3. **Edit `lib/app.html`** - Add role to dropdown menu
-4. **Test locally** and submit PR
-
-### Plugin System (Coming Soon)
-
-We're building a plugin system where developers can:
-- Create skills (e.g., `ponytail` for smart coding, `MoneyPrinterTurbo` for video)
-- Register plugins in `plugins.json`
-- Install/uninstall via web UI
-
----
-
-## Roadmap
-
-### Phase 1: Core Engine (Complete)
-- [x] 7 agent roles with specialized personas
-- [x] 3-tier brain chains (WORKHORSE/SPECIALIST/LIFELINE)
-- [x] SQLite memory system
-- [x] Web UI with live crew management
-- [x] Free-tier safety limits
-
-### Phase 2: Solver Orchestration (Complete)
-- [x] Solver role with delegation capabilities
-- [x] Delegation Board in web UI
-- [x] Agent-to-agent handoff via /api/delegate
-- [x] Role-aware system prompts
-
-### Phase 3: Web3 Anchoring (In Progress)
-- [ ] Deploy StratoflyAnchor contract to Sepolia testnet
-- [ ] Integrate lib/chain_relay.py with web3.py
-- [ ] Badge [ON-CHAIN] + Etherscan link in UI
-- [ ] Hybrid architecture: data in SQLite, hash on blockchain
-
-### Phase 4: Plugin Ecosystem (Planned)
-- [ ] Plugin system (lib/plugins/ folder)
-- [ ] Plugin registry (plugins.json)
-- [ ] Web UI plugin manager
-- [ ] Example plugins: ponytail, MoneyPrinterTurbo, SecurityAuditSkill
-
-### Phase 5: Role Expansion (Planned)
-- [ ] VideoEditor role
-- [ ] SocialMedia role
-- [ ] DataScientist role
-- [ ] Community-contributed roles
-
----
-
-## Use Cases
-
-### For Developers
-- **Code review assistant** - Sentinel scans PRs for security issues
-- **Documentation generator** - Communicator drafts README from code
-- **Test generator** - Crafter writes unit tests from specs
-
-### For Content Creators
-- **Blog post pipeline** - Analyst researches, Communicator drafts
-- **Social media scheduler** - Operator schedules posts
-
-### For Teams
-- **Project planning** - Solver breaks down project, delegates to team
-- **Knowledge base** - All agents share memory.sqlite3
+Roles are declared as data, so extending the crew is a matter of definition, not surgery. A new role needs a persona, a capability set, and a privilege boundary; the engine picks it up from there. Start from `docs/ROLE-BLUEPRINT-SPEC-v1.md` to see how existing roles are shaped, and follow the contribution flow above.
 
 ---
 
 ## Privacy & Security
 
-- **Local-first** - All data stays on your machine
-- **API keys in .env** - Never committed to git
-- **Free-tier limits** - Prevents accidental API overuse
-- **No telemetry** - Stratofly does not phone home
+- **Local-first** — All data stays on your machine
+- **API keys in .env** — Never committed to git
+- **Free-tier limits** — Prevents accidental API overuse
+- **No telemetry** — Stratofly does not phone home
 
 ---
 
 ## License
 
-**Apache License 2.0** - See LICENSE for details.
+**Apache License 2.0** — See LICENSE for details.
 
 You're free to use, modify, and distribute Stratofly for commercial or non-commercial purposes.
 
@@ -231,12 +144,7 @@ You're free to use, modify, and distribute Stratofly for commercial or non-comme
 
 ## Contact
 
-**Author:** Ringga Putra
+**Author:** -
 **GitHub:** @Ringga999
 **Project:** https://github.com/Ringga999/local-stratofly
-
----
-
-**Star this repo if you find it useful!**
-
-*Built with love for the open-source community.*
+**Email (collaboration / help / contribution):** 1045weeks@gmail.com
