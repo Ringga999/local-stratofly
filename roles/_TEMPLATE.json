@@ -1,0 +1,12 @@
+{
+  "name": "RoleName",
+  "division": "General",
+  "capabilities": [],
+  "tools": [],
+  "privileges": [],
+  "modules": [],
+  "preferred_kinds": [
+    "text"
+  ],
+  "persona": "You are a ... agent. Describe duties, boundaries and approval rules here."
+}

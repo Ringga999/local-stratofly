@@ -2,7 +2,7 @@
 # Routes a free-form prompt to provider_hub.think using the target agent's
 # persona and brain chain. Minimal on purpose: read config, build persona,
 # think, log one memory event, return the answer string.
-from lib import memory, persona, provider_hub, settings
+from lib import memory, persona, provider_hub, settings, role_registry
 
 
 def ask(prompt, agent_id="scout"):
@@ -12,7 +12,7 @@ def ask(prompt, agent_id="scout"):
     cfg = settings.load()
     a = (cfg.get("agents") or {}).get(agent_id) or {}
     brain = a.get("brain", "WORKHORSE")
-    sys_p = persona.system_prompt(agent_id, extra="")
+    sys_p = role_registry.system_prompt(agent_id, extra="")
     ans = provider_hub.think(
         brain=brain,
         system=sys_p,

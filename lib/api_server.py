@@ -11,14 +11,14 @@ _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 from lib import memory, settings, model_kind, ask_handler, scheduler, mock
-from lib import onboard, persona, chain_relay
+from lib import onboard, persona, chain_relay, role_registry, plugin_manager
 from config import REPORTS_DIR
 
 HERE = Path(__file__).resolve().parent
 APP_HTML = HERE / "app.html"
 DEFAULT_PORT = 8765
 BRAIN_NAMES = ["WORKHORSE", "SPECIALIST", "LIFELINE"]
-ROLE_NAMES = ["Solver", "Architect", "Crafter", "Analyst", "Communicator", "Sentinel", "Operator"]
+ROLE_NAMES = role_registry.role_names()
 ALLOWED_AGENT = {"enabled", "autonomous", "cadence_hours", "brain", "division", "role"}
 
 _MOCK_STOP = threading.Event()
@@ -138,7 +138,7 @@ def _agent_detail(aid):
         "bubble": live.get("bubble") or "ready - waiting for task",
         "action": live.get("action", "-"),
         "recent_events": events[:5],
-        "modules": role_modules.get(role, []),
+        "modules": role_modules.get(role) or role_registry.modules_for(role),
         "template_role": a.get("template_role", aid),
     }
 
@@ -371,7 +371,7 @@ def _delegate(body):
         if to_agent not in agents:
             return {"ok": False, "answer": "", "error": "unknown agent: " + to_agent}
         brain = agents[to_agent].get("brain", "WORKHORSE")
-        sys_p = persona.system_prompt(to_agent, extra="")
+        sys_p = role_registry.system_prompt(to_agent, extra="")
         ans = provider_hub.think(brain=brain, system=sys_p, user=task, agent_id=to_agent, temperature=0.6, max_tokens=1024)
         try:
             memory.log_event(frm, "delegate", "dispatch", to_agent, "delegated: " + task[:48], -1)
@@ -382,6 +382,17 @@ def _delegate(body):
         return {"ok": True, "answer": ans or "", "agent": to_agent}
     except Exception as e:
         return {"ok": False, "answer": "", "error": str(e)}
+
+def _roles():
+    return {"roles": role_registry.role_names(), "catalog": role_registry.catalog()}
+
+def _plugins():
+    return plugin_manager.status()
+
+def _plugin_toggle(body):
+    return plugin_manager.toggle((body.get("agent_id") or "").strip(),
+                                 (body.get("plugin_id") or "").strip(),
+                                 bool(body.get("enabled")))
 
 def _memory_status():
     return chain_relay.get_status()
@@ -453,6 +464,10 @@ class Handler(BaseHTTPRequestHandler):
                     self._send_json({"error": "invalid id"}, 400)
             elif p == "/api/memory/status":
                 self._send_json(_memory_status())
+            elif p == "/api/roles":
+                self._send_json(_roles())
+            elif p == "/api/plugins":
+                self._send_json(_plugins())
             elif p == "/health":
                 self._send_json({"status": "ok"})
             else:
@@ -485,6 +500,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(_mock_stop())
             elif p == "/api/memory/mode":
                 self._send_json(_memory_mode(b))
+            elif p == "/api/plugins/toggle":
+                self._send_json(_plugin_toggle(b))
             else:
                 self._send_json({"error": "not found"}, 404)
         except Exception as e:

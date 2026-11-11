@@ -1,0 +1,157 @@
+[
+  {
+    "id": "ponytail",
+    "name": "Ponytail",
+    "repo": "",
+    "status": "link-pending",
+    "category": "coding",
+    "roles": [
+      "Crafter",
+      "Architect"
+    ],
+    "prompt_pack": "Write efficient, minimal, well-tested code; prefer small composable functions; explain trade-offs briefly.",
+    "notes": "smart & efficient coding skill"
+  },
+  {
+    "id": "agent-desktop",
+    "name": "Agent Desktop",
+    "repo": "",
+    "status": "link-pending",
+    "category": "automation",
+    "roles": [
+      "Operator"
+    ],
+    "prompt_pack": "When a task involves desktop steps, produce an explicit click-by-click checklist for human approval before any action.",
+    "notes": "desktop automation"
+  },
+  {
+    "id": "sand3d",
+    "name": "Sand3D",
+    "repo": "https://github.com/sandflow-ai/sand3d",
+    "status": "user-provided",
+    "category": "3d-visual",
+    "roles": [
+      "VideoEditor",
+      "Architect"
+    ],
+    "prompt_pack": "For 3D/visual tasks, specify scene graph, assets and render settings explicitly before generating output.",
+    "notes": "slug provided by captain, verify"
+  },
+  {
+    "id": "kilocode",
+    "name": "Kilo Code",
+    "repo": "https://github.com/Kilo-Org/kilocode",
+    "status": "cataloged",
+    "category": "coding",
+    "roles": [
+      "Crafter"
+    ],
+    "prompt_pack": "Follow agentic coding discipline: plan, edit in small diffs, run tests, summarize changes.",
+    "notes": "VS Code agentic coding"
+  },
+  {
+    "id": "cline",
+    "name": "Cline",
+    "repo": "https://github.com/cline/cline",
+    "status": "cataloged",
+    "category": "coding",
+    "roles": [
+      "Crafter",
+      "Architect"
+    ],
+    "prompt_pack": "Break implementation into verifiable steps; never apply broad rewrites without a stated reason.",
+    "notes": "autonomous coding agent"
+  },
+  {
+    "id": "playwright",
+    "name": "Playwright",
+    "repo": "https://github.com/microsoft/playwright",
+    "status": "cataloged",
+    "category": "browser",
+    "roles": [
+      "Analyst",
+      "Operator",
+      "SocialMedia"
+    ],
+    "prompt_pack": "For web research, state exact URLs and selectors you would use; summarize findings with sources.",
+    "notes": "browser/internet access; execution adapter planned"
+  },
+  {
+    "id": "supabase",
+    "name": "Supabase",
+    "repo": "https://github.com/supabase/supabase",
+    "status": "cataloged",
+    "category": "backend",
+    "roles": [
+      "Architect",
+      "Crafter",
+      "DataScientist"
+    ],
+    "prompt_pack": "Prefer Postgres-first designs; specify schema, RLS policies and migrations explicitly.",
+    "notes": "backend/db platform"
+  },
+  {
+    "id": "strix",
+    "name": "Strix",
+    "repo": "",
+    "status": "link-pending",
+    "category": "security",
+    "roles": [
+      "Sentinel"
+    ],
+    "prompt_pack": "Audit like a penetration tester: enumerate attack surface, rank findings by severity, propose fixes.",
+    "notes": "security agent"
+  },
+  {
+    "id": "skillui",
+    "name": "SkillUI",
+    "repo": "",
+    "status": "link-pending",
+    "category": "ui",
+    "roles": [
+      "Architect",
+      "Crafter"
+    ],
+    "prompt_pack": "Design UI as reusable skill components with clear props and states.",
+    "notes": "ui skill library"
+  },
+  {
+    "id": "context7",
+    "name": "Context7",
+    "repo": "https://github.com/upstash/context7",
+    "status": "cataloged",
+    "category": "knowledge",
+    "roles": [
+      "Crafter",
+      "Analyst",
+      "DataScientist"
+    ],
+    "prompt_pack": "Prefer up-to-date library documentation over memory; cite version when giving API advice.",
+    "notes": "fresh docs for LLMs"
+  },
+  {
+    "id": "moneyprinterturbo",
+    "name": "MoneyPrinterTurbo",
+    "repo": "https://github.com/harry0703/MoneyPrinterTurbo",
+    "status": "cataloged",
+    "category": "video",
+    "roles": [
+      "VideoEditor",
+      "SocialMedia"
+    ],
+    "prompt_pack": "For short-video tasks, output script, voiceover text, subtitle cues and render checklist in one pass.",
+    "notes": "AI short-video generation"
+  },
+  {
+    "id": "skills-mattpocock",
+    "name": "Skills (Matt Pocock)",
+    "repo": "",
+    "status": "link-pending",
+    "category": "coding",
+    "roles": [
+      "Crafter"
+    ],
+    "prompt_pack": "Apply TypeScript-first rigor: strict types, narrow unions, exhaustive checks.",
+    "notes": "matt pocock skills repo"
+  }
+]
