@@ -2,27 +2,27 @@
   {
     "id": "ponytail",
     "name": "Ponytail",
-    "repo": "",
-    "status": "link-pending",
+    "repo": "https://github.com/DietrichGebert/ponytail",
+    "status": "cataloged",
     "category": "coding",
     "roles": [
       "Crafter",
       "Architect"
     ],
     "prompt_pack": "Write efficient, minimal, well-tested code; prefer small composable functions; explain trade-offs briefly.",
-    "notes": "smart & efficient coding skill"
+    "notes": "minimal-code skill: lazy senior engineer discipline"
   },
   {
     "id": "agent-desktop",
     "name": "Agent Desktop",
-    "repo": "",
-    "status": "link-pending",
+    "repo": "https://github.com/vercel-labs/agent-desktop",
+    "status": "cataloged",
     "category": "automation",
     "roles": [
       "Operator"
     ],
     "prompt_pack": "When a task involves desktop steps, produce an explicit click-by-click checklist for human approval before any action.",
-    "notes": "desktop automation"
+    "notes": "computer-use CLI via accessibility tree (no screenshots)"
   },
   {
     "id": "sand3d",
@@ -93,27 +93,27 @@
   {
     "id": "strix",
     "name": "Strix",
-    "repo": "",
-    "status": "link-pending",
+    "repo": "https://github.com/usestrix/strix",
+    "status": "cataloged",
     "category": "security",
     "roles": [
       "Sentinel"
     ],
     "prompt_pack": "Audit like a penetration tester: enumerate attack surface, rank findings by severity, propose fixes.",
-    "notes": "security agent"
+    "notes": "autonomous AI pentesting agents; validates real vulns"
   },
   {
     "id": "skillui",
     "name": "SkillUI",
-    "repo": "",
-    "status": "link-pending",
+    "repo": "https://github.com/amaancoderx/npxskillui",
+    "status": "cataloged",
     "category": "ui",
     "roles": [
       "Architect",
       "Crafter"
     ],
     "prompt_pack": "Design UI as reusable skill components with clear props and states.",
-    "notes": "ui skill library"
+    "notes": "extract design systems/tokens from sites & repos"
   },
   {
     "id": "context7",
@@ -145,13 +145,13 @@
   {
     "id": "skills-mattpocock",
     "name": "Skills (Matt Pocock)",
-    "repo": "",
-    "status": "link-pending",
+    "repo": "https://github.com/mattpocock/skills",
+    "status": "cataloged",
     "category": "coding",
     "roles": [
       "Crafter"
     ],
     "prompt_pack": "Apply TypeScript-first rigor: strict types, narrow unions, exhaustive checks.",
-    "notes": "matt pocock skills repo"
+    "notes": "engineering skills: review, triage, composable"
   }
 ]
