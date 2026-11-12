@@ -106,9 +106,14 @@ def _anchor_job(agent_id, payload):
         key = (e.get("STRATOFLY_CHAIN_KEY") or "").strip()
         acct = w3.eth.account.from_key(key)
         nonce = w3.eth.get_transaction_count(acct.address)
+        try:
+            est = c.functions.anchor(agent_id, mem_hash).estimate_gas({"from": acct.address})
+            gas_limit = int(est * 1.3) + 10000
+        except Exception:
+            gas_limit = 300000
         tx = c.functions.anchor(agent_id, mem_hash).build_transaction({
             "from": acct.address, "nonce": nonce, "chainId": 11155111,
-            "gas": 120000, "gasPrice": w3.eth.gas_price,
+            "gas": gas_limit, "gasPrice": w3.eth.gas_price,
         })
         signed = w3.eth.account.sign_transaction(tx, key)
         raw = getattr(signed, "raw_transaction", None) or getattr(signed, "rawTransaction")
