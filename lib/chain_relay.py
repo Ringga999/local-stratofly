@@ -53,7 +53,8 @@ def _wallet_address():
         k = (_env().get("STRATOFLY_CHAIN_KEY") or "").strip()
         if not k:
             return None
-        return Web3.eth.account.from_key(k).address
+        from eth_account import Account
+        return Account.from_key(k).address
     except Exception:
         return None
 
