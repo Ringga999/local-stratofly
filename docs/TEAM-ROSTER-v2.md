@@ -1,5 +1,5 @@
 # TEAM ROSTER v2 — 10 Agen, Tiga Sayap
-
+> **How this relates to roles:** This roster lists the *default agents* (named instances with divisions and cadences) that ship in `settings.json`. The *capabilities* they draw on are **roles**, defined as data in `roles/*.json` and mapped to buildable modules in `docs/ROLE-MODULES-BLUEPRINT.md`. One role can serve many agents; each agent holds one role.
 > Versi: 2.0 · 11 Oktober 2026 · Menggantikan roster 5 agen awal
 > Sumber kebenaran persona: folder `agents/personas/`
 
