@@ -92,7 +92,10 @@ Open `http://localhost:8765`. No API key is needed to explore; use \*\*Mock\*\* 
 
 | `plugins/registry.json` | Plugin catalog (prompt-packs + repo links) |
 
+| `agents/personas/*.md` | Runtime per-agent personas for the default crew (loaded by `lib/persona.py`) |
+
 | `docs/` | Specs, blueprints, INSTALL |
+Persona precedence (highest first): `roles/<role>.json` persona → `agents/personas/<agent_id>.md` → `lib/persona.py` fallback. Details in `agents/personas/README.md`.
 
 
 

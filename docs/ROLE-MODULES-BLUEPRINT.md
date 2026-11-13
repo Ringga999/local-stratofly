@@ -216,3 +216,10 @@ Peta kontribusi Stratofly: 10 role x modul yang perlu dibangun. Satu sel = satu 
 
 | report\_gen | Laporan analisis markdown | pakai ulang Analyst report\_gen | viewer | partial |
 
+
+## Engine cells (cross-cutting)
+
+| Cell | Definition | Endpoint | UI state | Status |
+|---|---|---|---|---|
+| role-consolidation | Unify the persona houses: one data scheme for per-agent `.md` and role JSON, precedence preserved and tested | refactor `lib/persona.py` + `lib/role_registry.py` | none | planned |
+| telegram_listener | Inbound Telegram handler (`/start`, draft approval) so the bot can reply, not only send | polling loop or webhook in `lib/telegram_gateway.py` | approval buttons | planned |
