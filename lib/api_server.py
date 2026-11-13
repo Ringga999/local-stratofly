@@ -383,6 +383,21 @@ def _delegate(body):
     except Exception as e:
         return {"ok": False, "answer": "", "error": str(e)}
 
+def _reports_list():
+    out = []
+    try:
+        for f in sorted(REPORTS_DIR.glob("report_*.md"), key=lambda x: x.stat().st_mtime, reverse=True):
+            stem = f.name[len("report_"):-len(".md")]
+            try:
+                rid = int(stem)
+            except Exception:
+                continue
+            sz = f.stat().st_size
+            out.append({"id": rid, "bytes": sz, "empty": sz == 0, "mtime": int(f.stat().st_mtime)})
+    except Exception:
+        pass
+    return {"schema": 2, "reports": out}
+
 def _roles():
     return {"roles": role_registry.role_names(), "catalog": role_registry.catalog()}
 
@@ -452,6 +467,8 @@ class Handler(BaseHTTPRequestHandler):
                     except Exception:
                         pass
                 self._send_json({"schema": 2, "events": memory.recent_events(limit)})
+            elif p == "/api/reports":
+                self._send_json(_reports_list())
             elif p.startswith("/api/report/"):
                 try:
                     rid = int(p.split("/api/report/")[1])
