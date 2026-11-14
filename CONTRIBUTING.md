@@ -231,3 +231,41 @@ Works in the UI or API by your own eyes · pushed · documented · no secrets ·
 
 Open an issue, or write to \*\*1045weeks@gmail.com\*\*. Collaboration, mentorship, and strange ideas welcome.
 
+
+## File Permission Matrix
+
+What the team may create / modify / delete, and where review is required.
+
+| Path | Create | Modify | Delete | Review |
+|---|---|---|---|---|
+| `lib/*.py` (engine core) | ❌ | ⚠️ verified-anchor patch + PR only | ❌ | Maintainer |
+| `lib/app.html` (UI) | ❌ | ⚠️ additive sections + PR | ❌ | Maintainer |
+| `roles/*.json` | ✅ | ✅ | ⚠️ only if unused | Self + PR |
+| `plugins/registry.json` | ✅ entries | ✅ entries | ⚠️ | Self + PR |
+| `agents/personas/*.md` | ✅ | ✅ | ⚠️ | Self + PR |
+| `docs/**` | ✅ | ✅ | ⚠️ | Self + PR |
+| `contracts/*.sol` | ❌ | ⚠️ redeploy + verify + PR | ❌ | Maintainer |
+| `.env`, `settings.json`, `memory.sqlite3` | local only | local only | local only | NEVER commit |
+
+Legend: ✅ allowed via PR · ⚠️ allowed with extra gate · ❌ not allowed.
+
+## Change Procedure (every contribution)
+
+1. Pick one `planned` cell in `docs/ROLE-MODULES-BLUEPRINT.md`; comment on the issue/PR to claim it.
+2. Branch `feature/<role>-<module>`.
+3. Build additively; never move or delete engine files.
+4. Gate: `python main.py serve` + verify with your own eyes + clean-clone test for engine changes.
+5. The PR flips the blueprint cell to `done` in the same PR.
+6. Never commit `.env`, `settings.json`, `memory.sqlite3`.
+
+## AI-Assisted Development Protocol
+
+Using AI (chat assistants / codegen) is encouraged, under these rules:
+
+1. **Feed raw, not rendered.** Paste file contents from disk / raw view, never from a rendered page (rendered copies carry escape artifacts like `\_`, `\#`, `&#x20;`).
+2. **Verified anchors.** Any AI-generated patch must target an exact, currently-present anchor string; abort if missing; keep a `.bak` backup; never blind-replace.
+3. **Don't trust AI memory.** AI may misremember versions, hashes, APIs. Verify against the live source / dropdown / endpoint before acting.
+4. **Gates are human.** AI output is a proposal; a human runs the server, looks at UI/terminal, and confirms behavior before commit.
+5. **Secrets never enter AI chat.** No `.env` values, tokens, or keys in prompts or screenshots; mask them.
+6. **One cell per PR.** Keep AI-generated changes scoped to a single blueprint cell so review stays tractable.
+7. **Record the doctrine.** If a session produces a new lesson, add it to the journal / CONTRIBUTING so the team inherits it.
