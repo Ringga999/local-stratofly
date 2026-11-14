@@ -1,0 +1,6 @@
+/lib/ @Ringga999
+/roles/ @Ringga999
+/contracts/ @Ringga999
+/docs/ROLE-CATALOG-100.md @Ringga999
+/docs/ROLE-MODULES-BLUEPRINT.md @Ringga999
+/CONTRIBUTING.md @Ringga999
