@@ -89,7 +89,7 @@ The engine never depends on the chain to keep working. If anchoring is off, unco
 
 What it does: for each anchored event, the engine computes a SHA-256 hash of the local payload and submits it to a `StratoflyAnchor` contract on Sepolia. The original data never leaves your machine; the chain stores only the hash, a timestamp, and the submitting address.
 
-Reference deployment (public, Sepolia): `0x1f2d2144D246e1EFcf070cD7d58f7067DEeF0Db3`. You may point at it, or deploy your own copy (Appendix A) via Remix.
+Reference deployment (public, Sepolia): `0x2c4F47120bCc621267964Cbce7490CB70E2B5a65`. You may point at it, or deploy your own copy (Appendix A) via Remix.
 
 To enable, set three variables in `.env`:
 

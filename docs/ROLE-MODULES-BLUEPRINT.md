@@ -114,3 +114,4 @@ Peta kontribusi Stratofly: 10 role x modul yang perlu dibangun. Satu sel = satu 
 |---|---|---|---|---|
 | role-consolidation | Unify the persona houses: one data scheme for per-agent `.md` and role JSON, precedence preserved and tested | refactor `lib/persona.py` + `lib/role_registry.py` | none | planned |
 | telegram_listener | Inbound Telegram handler (`/start`, draft approval) so the bot can reply, not only send | polling loop or webhook in `lib/telegram_gateway.py` | approval buttons | planned |
+| contract-reconciliation | Redeploy StratoflyAnchor from repo source with verified compiler (v0.8.34 + Optimization 200 runs); Etherscan verified; update docs with new address | redeploy + verify | Read Contract tab | done |
