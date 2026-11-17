@@ -1,66 +1,107 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="color-scheme" content="dark">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Stratofly - Control Room</title>
 <style>
-:root{--bg:#0e1116;--card:#161b22;--ink:#e6edf3;--mut:#8b949e;--line:#30363d;--green:#3fb950;--amber:#d29922;--grey:#6e7681;--blue:#58a6ff;--red:#f85149}
-@media(prefers-color-scheme:light){:root{--bg:#f6f8fa;--card:#fff;--ink:#1f2328;--mut:#656d76;--line:#d0d7de}}
-*{box-sizing:border-box}body{margin:0;font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
-header{padding:14px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:5}
-header h1{font-size:17px;margin:0}header .tag{color:var(--mut);font-size:11px}
-.wrap{padding:20px;max-width:1180px;margin:0 auto;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
-.card h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);margin:0 0 10px}
+:root{--bg:#0B0D10;--card:#12151A;--card2:#171B21;--ink:#E6E9ED;--mut:#9AA4B2;--line:#232A33;
+--accent:#39C6C0;--accent-ink:#052422;--accent-soft:color-mix(in srgb, var(--accent) 7%, transparent);--green:#3FB950;--amber:#D29922;--grey:#6e7681;--blue:#58a6ff;--red:#F85149;
+--r:10px;--mono:ui-monospace,'JetBrains Mono',Menlo,Consolas,monospace}
+*{box-sizing:border-box}
+html{color-scheme:dark}
+body{margin:0;font:13px/1.55 system-ui,'Segoe UI',Inter,Roboto,sans-serif;background:var(--bg);color:var(--ink);
+background-image:radial-gradient(1200px 400px at 50% -10%,var(--accent-soft),transparent)}
+::selection{background:color-mix(in srgb, var(--accent) 30%, transparent)}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+header{padding:10px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+position:sticky;top:0;background:rgba(11,13,16,.85);backdrop-filter:blur(8px);z-index:5}
+header h1{font-size:15px;margin:0;display:flex;align-items:center;gap:8px;letter-spacing:.02em}
+header h1 svg{width:18px;height:18px;stroke:var(--accent)}
+header .tag{color:var(--mut);font-size:11px}
+.wrap{padding:18px;max-width:1240px;margin:0 auto;display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;box-shadow:0 1px 0 rgba(255,255,255,.03) inset,0 8px 24px rgba(0,0,0,.25)}
+.card h2{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--mut);margin:0 0 10px;font-weight:600}
 .full{grid-column:1/-1}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:9px}
-.agent{border:1px solid var(--line);border-radius:8px;padding:9px;display:flex;flex-direction:column;gap:5px;cursor:pointer;transition:border-color .15s}
-.agent:hover{border-color:var(--blue)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:9px}
+.agent{border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:5px;cursor:pointer;
+background:var(--card2);transition:border-color .15s,transform .15s}
+.agent:hover{border-color:var(--accent);transform:translateY(-1px)}
 .agent .nm{font-weight:600;font-size:13px}.agent .dv{color:var(--mut);font-size:10px}.agent .bb{font-size:10px;color:var(--mut);min-height:13px}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;background:var(--grey)}
-.s-working .dot{background:var(--green)}.s-patrol .dot{background:var(--blue)}.s-alert .dot{background:var(--red)}.s-coffee .dot{background:var(--amber)}.s-idle .dot{background:var(--grey)}
+.s-working .dot{background:var(--green)}.s-patrol .dot{background:var(--blue)}.s-alert .dot{background:var(--red)}
+.s-coffee .dot{background:var(--amber)}.s-idle .dot{background:var(--grey)}
 .row{display:flex;gap:5px;align-items:center;flex-wrap:wrap;font-size:10px}
-.btn{cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:5px;padding:2px 7px;font-size:10px}
-.btn:hover{border-color:var(--blue)}.btn:disabled{opacity:.45;cursor:not-allowed}
-.btn-primary{background:var(--blue);border-color:var(--blue);color:#fff}.btn-primary:hover{background:#79c0ff}
-.btn-danger{color:var(--red);border-color:var(--red)}
-.brain{border-left:3px solid var(--blue);padding:5px 9px;margin:5px 0;background:rgba(88,166,255,.06);border-radius:0 5px 5px 0;font-size:11px}
-.badge{font-size:9px;padding:1px 5px;border-radius:20px;border:1px solid var(--line);color:var(--mut)}
-.bar{height:7px;background:var(--line);border-radius:5px;overflow:hidden;margin-top:3px}.bar i{display:block;height:100%;background:var(--green)}.bar.full i{background:var(--red)}
-.mut{color:var(--mut)}.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
-input,select,textarea{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:6px 8px;font:inherit;margin:2px 0;font-size:12px}
+.btn{cursor:pointer;border:1px solid var(--line);background:var(--card2);color:var(--ink);border-radius:6px;padding:3px 9px;font-size:10px;transition:.15s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,[data-act]:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[data-act]{cursor:pointer}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn-primary:hover{background:#6fd8d3;color:var(--accent-ink)}
+.btn-danger{color:var(--red);border-color:rgba(248,81,73,.4)}
+.brain{border-left:3px solid var(--accent);padding:5px 9px;margin:5px 0;background:var(--accent-soft);border-radius:0 6px 6px 0;font-size:11px}
+.badge{font-size:9px;padding:1px 6px;border-radius:20px;border:1px solid var(--line);color:var(--mut)}
+.bar{height:6px;background:var(--line);border-radius:5px;overflow:hidden;margin-top:3px}
+.bar i{display:block;height:100%;background:var(--green)}.bar.full i{background:var(--red)}
+.mut{color:var(--mut)}
+.mono{font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums}
+input,select,textarea{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit;margin:2px 0;font-size:12px}
 textarea{min-height:55px;resize:vertical}
 label{font-size:10px;color:var(--mut);display:block;margin-top:6px}
 .chk{display:flex;align-items:center;gap:5px}.chk input{width:auto;margin:0}
 .evt{font-size:10px;padding:3px 0;border-bottom:1px dashed var(--line);color:var(--mut)}.evt b{color:var(--ink)}
-.toast{position:fixed;right:16px;bottom:16px;max-width:320px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:7px;padding:9px 12px;font-size:11px;box-shadow:0 5px 20px rgba(0,0,0,.4);opacity:0;transform:translateY(7px);transition:.25s;z-index:9}
+.toast{position:fixed;right:16px;bottom:16px;max-width:320px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:9px 12px;font-size:11px;box-shadow:0 5px 20px rgba(0,0,0,.5);opacity:0;transform:translateY(7px);transition:.25s;z-index:9}
 .toast.show{opacity:1;transform:none}.toast.err{border-left-color:var(--red)}.toast.ok{border-left-color:var(--green)}
-.answer{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:9px;margin-top:7px;white-space:pre-wrap;word-break:break-word;font-size:12px;min-height:18px}
-.repolist{list-style:none;margin:0;padding:0}.repolist li{display:flex;gap:5px;align-items:center;margin:2px 0}.repolist li span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.answer{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px;margin-top:7px;white-space:pre-wrap;word-break:break-word;font-size:12px;min-height:18px}
+.repolist{list-style:none;margin:0;padding:0}.repolist li{display:flex;gap:5px;align-items:center;margin:2px 0}
+.repolist li span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .statusline{font-size:11px;margin:2px 0}.ok{color:var(--green)}.no{color:var(--red)}
 .dropdown{position:relative;display:inline-block}
-.dropdown-content{display:none;position:absolute;right:0;background:var(--card);border:1px solid var(--line);border-radius:6px;min-width:220px;box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:10;padding:6px 0}
+.dropdown-content{display:none;position:absolute;right:0;background:var(--card);border:1px solid var(--line);border-radius:8px;min-width:220px;box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:10;padding:6px 0}
 .dropdown:hover .dropdown-content{display:block}
-.dropdown-content a{color:var(--ink);padding:6px 12px;text-decoration:none;display:block;font-size:11px}.dropdown-content a:hover{background:var(--bg)}.dropdown-content a small{color:var(--mut);display:block;font-size:9px;margin-top:1px}
-.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:20;align-items:center;justify-content:center}
+.dropdown-content a{color:var(--ink);padding:6px 12px;text-decoration:none;display:block;font-size:11px}
+.dropdown-content a:hover{background:var(--bg)}.dropdown-content a small{color:var(--mut);display:block;font-size:9px;margin-top:1px}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:20;align-items:center;justify-content:center}
 .modal-overlay.show{display:flex}
-.modal{background:var(--card);border:1px solid var(--line);border-radius:10px;max-width:640px;width:90%;max-height:85vh;overflow-y:auto;padding:18px}
-.modal h3{margin:0 0 10px;font-size:15px}.modal .close{float:right;cursor:pointer;font-size:18px;color:var(--mut)}.modal .close:hover{color:var(--ink)}
-.modal-section{margin:12px 0;padding:10px;background:var(--bg);border-radius:6px;border:1px solid var(--line)}
-.modal-section h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;color:var(--mut);letter-spacing:.05em}
-.module-placeholder{padding:8px;background:rgba(88,166,255,.05);border-left:3px solid var(--blue);border-radius:0 5px 5px 0;margin:6px 0;font-size:11px}.module-placeholder b{color:var(--blue)}
-.deleg-row{border:1px solid var(--line);border-radius:6px;padding:7px;margin:6px 0;font-size:11px}
-.deleg-row .hd{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.deleg-row .tk{flex:1;color:var(--ink)}
-.deleg-row .ag{color:var(--blue);font-weight:600}
-.deleg-row .bad{color:var(--red)}
-.deleg-out{margin-top:6px;padding:6px;background:var(--card);border-radius:5px;white-space:pre-wrap;word-break:break-word;font-size:11px;min-height:14px;color:var(--mut)}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:12px;max-width:640px;width:90%;max-height:85vh;overflow-y:auto;padding:18px}
+.modal h3{margin:0 0 10px;font-size:15px}.modal .close{float:right;cursor:pointer;font-size:18px;color:var(--mut)}
+.modal .close:hover{color:var(--ink)}
+.modal-section{margin:12px 0;padding:10px;background:var(--bg);border-radius:8px;border:1px solid var(--line)}
+.modal-section h4{margin:0 0 6px;font-size:10px;text-transform:uppercase;color:var(--mut);letter-spacing:.08em}
+.module-placeholder{padding:8px;background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;margin:6px 0;font-size:11px}
+.module-placeholder b{color:var(--accent)}
+.deleg-row{border:1px solid var(--line);border-radius:8px;padding:7px;margin:6px 0;font-size:11px}
+.deleg-row .hd{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.deleg-row .tk{flex:1;color:var(--ink)}
+.deleg-row .ag{color:var(--accent);font-weight:600}.deleg-row .bad{color:var(--red)}
+.deleg-out{margin-top:6px;padding:6px;background:var(--card);border-radius:6px;white-space:pre-wrap;word-break:break-word;font-size:11px;min-height:14px;color:var(--mut)}
+/* Telemetry */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:9px;margin-bottom:12px}
+.kpi{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:10px}
+.kpi .v{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums}
+.kpi .l{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);margin-top:2px}
+.tele-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.tele-box{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:10px}
+.tele-box h3{margin:0 0 8px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--mut)}
+.hbar{display:flex;align-items:center;gap:6px;margin:4px 0;font-size:10px}
+.hbar .lbl{width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mut)}
+.hbar .tr{flex:1;height:6px;background:var(--line);border-radius:4px;overflow:hidden}
+.hbar .tr i{display:block;height:100%;background:var(--accent)}
+.hbar .n{font-family:var(--mono);width:24px;text-align:right}
+.legend{display:flex;flex-wrap:wrap;gap:8px;font-size:9px;color:var(--mut);margin-top:6px}
+.legend i{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:4px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.tut-video{display:flex;gap:10px;align-items:center;background:var(--card2);border:1px dashed var(--line);border-radius:8px;padding:12px}.tut-video svg{width:34px;height:34px;flex:none;color:var(--accent)}.tut-steps{margin:0;padding-left:18px;font-size:12px}.tut-steps li{margin:6px 0}.tut-steps b{color:var(--ink)}
 </style></head><body>
-<header><h1>&#9876; Stratofly</h1><span class="tag">control room &middot; one crew, every free API</span>
+<header><h1><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg>Stratofly</h1><span class="tag">control room &middot; one crew, every free API</span>
 <span class="tag" id="online">&#9679; connecting&#8230;</span>
 <button class="btn btn-primary" data-act="patrol">Run Patrol</button>
 <button class="btn" id="mockBtn" data-act="mock-toggle">Mock: OFF</button>
 <div class="dropdown"><button class="btn">Free APIs &#9662;</button><div class="dropdown-content" id="freeApisMenu"></div></div>
+<button class="btn" data-act="open-settings">Settings</button>
+<button class="btn" data-act="open-plugins">Plugins</button>
+<button class="btn" data-act="open-tutorial">Tutorial</button>
 <span class="tag" id="clock"></span></header>
 <div class="wrap">
+ <div class="card full"><h2>Telemetry &middot; Crew Performance &amp; Statistics</h2><div class="kpis" id="teleKpis"></div><div class="tele-grid" id="teleGrid"></div></div>
  <div class="card full"><h2>Live Crew &middot; Real State (click card for details)</h2><div class="grid" id="crewGrid"></div></div>
  <div class="card"><h2>Onboard &middot; API Key</h2><div class="statusline" id="envStatus">checking&#8230;</div>
    <label>NVIDIA NIM key (nvapi-...)</label><input type="password" id="apiKey" placeholder="paste key, then Save">
@@ -83,10 +124,7 @@ label{font-size:10px;color:var(--mut);display:block;margin-top:6px}
  <div class="card"><h2>Free-Tier Limits</h2><div id="limitsBox"></div></div>
  <div class="card"><h2>Watched Repos</h2><ul class="repolist" id="reposBox"></ul>
    <form id="repoForm" style="display:flex;gap:5px;margin-top:5px"><input id="repoAdd" placeholder="owner/name" style="flex:1"><button class="btn" type="submit">+ add</button></form></div>
- <div class="card"><h2>Plugins &middot; Skill Packs</h2>
-   <label>apply to agent</label><select id="plugAgent"></select>
-   <div id="pluginsBox" class="mut" style="margin-top:6px">loading&#8230;</div>
-   <div class="mut" style="font-size:10px;margin-top:5px">Skill packs shape an agent's persona. No third-party code is executed.</div></div>
+
  <div class="card"><h2>Memory &middot; On-Chain Anchoring</h2>
    <div class="statusline" id="memStatus">checking&#8230;</div>
    <div class="row" style="margin-top:6px">
@@ -112,6 +150,38 @@ label{font-size:10px;color:var(--mut);display:block;margin-top:6px}
       <h4>Delegation Board &middot; Solver proposed these sub-tasks</h4>
       <div id="delegateBoard" class="mut">Run Solver to populate.</div>
     </div>
+</div></div>
+<div class="modal-overlay" id="setModal"><div class="modal">
+<span class="close" data-act="close-settings">&times;</span>
+<h3>Settings</h3>
+<div class="modal-section"><h4>Accent color</h4><div class="row" id="accentRow"><button class="btn" data-act="set-accent" data-id="#39C6C0" title="Teal" aria-label="Teal" style="width:22px;height:22px;padding:0;border-radius:6px;background:#39C6C0"></button><button class="btn" data-act="set-accent" data-id="#0EA5E9" title="Blue" aria-label="Blue" style="width:22px;height:22px;padding:0;border-radius:6px;background:#0EA5E9"></button><button class="btn" data-act="set-accent" data-id="#10B981" title="Green" aria-label="Green" style="width:22px;height:22px;padding:0;border-radius:6px;background:#10B981"></button><button class="btn" data-act="set-accent" data-id="#EF4444" title="Red" aria-label="Red" style="width:22px;height:22px;padding:0;border-radius:6px;background:#EF4444"></button></div><div class="mut" style="font-size:10px;margin-top:5px">Applies live; saved on this device.</div></div>
+<div class="modal-section"><h4>Recall depth (memory_recall_k)</h4>
+<input type="number" id="setRecall" min="0" max="20" value="5">
+<button class="btn btn-primary" data-act="save-recall" style="margin-top:6px">Save</button></div>
+</div></div>
+<div class="modal-overlay" id="plugModal"><div class="modal">
+<span class="close" data-act="close-plugins">&times;</span>
+<h3>Skill Packs / Plugins</h3>
+<label>apply to agent</label><select id="plugAgent"></select>
+<div id="pluginsBox" class="mut" style="margin-top:6px">loading&#8230;</div>
+<div class="mut" style="font-size:10px;margin-top:5px">Skill packs shape an agent's persona. No third-party code is executed.</div>
+</div></div>
+<div class="modal-overlay" id="tutModal"><div class="modal">
+<span class="close" data-act="close-tutorial">&times;</span>
+<h3>Tutorial</h3>
+<div class="modal-section"><h4>Video walkthrough</h4>
+<div class="tut-video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/></svg>
+<div><b>Video coming soon</b><div class="mut">The recorded walkthrough is in production. Use the written quick-start below meanwhile.</div></div></div>
+<button class="btn" disabled title="Video not published yet" style="margin-top:8px">Play (soon)</button></div>
+<div class="modal-section"><h4>Quick start (written)</h4><ol class="tut-steps">
+<li><b>Onboard a key.</b> Paste your NVIDIA NIM key in Onboard &middot; API Key and Save. It is written to .env locally, never committed.</li>
+<li><b>Create an agent.</b> In Add Agent pick id, division, role and brain; keep autonomous armed so it patrols on its cadence.</li>
+<li><b>Command the crew.</b> Choose an agent and send a free prompt; the answer lands in the response panel.</li>
+<li><b>Shape persona with plugins.</b> Open Plugins, pick an agent, toggle skill packs ON. Packs only adjust persona; no third-party code runs.</li>
+<li><b>Anchor memory on-chain.</b> Keep Memory in hybrid mode; each ask anchors a hash to Sepolia. Click last tx to verify on Etherscan.</li>
+<li><b>Read telemetry.</b> The top panel shows crew KPIs, state distribution, per-division/role load and activity volume.</li>
+<li><b>Tune in Settings.</b> Set recall depth (how many recent memories an agent sees) and pick the accent color.</li>
+</ol></div>
 </div></div>
 <div class="toast" id="toast"></div>
 <script>
@@ -143,6 +213,14 @@ function renderRepos(){$("reposBox").innerHTML=(CFG.repos.length?CFG.repos:["(no
 function renderDelegateBoard(){$("delegateBoard").innerHTML=__DELEG.length?__DELEG.map(function(d,i){var ag=d.valid?('<span class="ag">'+esc(d.agent)+'</span>'):('<span class="bad">'+esc(d.agent)+' (unknown)</span>');return '<div class="deleg-row"><div class="hd"><span class="tk">'+esc(d.task)+'</span><span>&rarr;</span>'+ag+(d.valid?'<button class="btn btn-primary" data-act="run-delegate" data-idx="'+i+'">Run via '+esc(d.agent)+'</button>':'')+'</div><div class="deleg-out" id="do-'+i+'"></div></div>';}).join(""):'<span class="mut">Solver proposed no delegations (single-step plan).</span>';}
 async function openAgentModal(aid){try{var d=await jget("/api/agent/"+encodeURIComponent(aid));$("modalTitle").textContent=d.id+" ("+d.role+" / "+d.division+")";var brainHtml=d.brain_chain.map(function(b){return '<span class="mono">'+esc(b.provider)+'/'+esc(b.model)+'</span> <span class="badge">'+esc(b.kind)+'</span>';}).join("<br>")||'<span class="mut">(empty)</span>';var eventsHtml=d.recent_events.length?d.recent_events.map(function(e){return '<div class="evt"><b>'+esc(e.state||"")+'</b> &middot; '+esc(e.action||"")+' &middot; '+esc(e.bubble||"")+'</div>';}).join(""):'<span class="mut">no recent events</span>';var pl=null;try{pl=await jget("/api/plugins");}catch(e){}var en=((pl&&pl.enabled)||{})[d.id]||[];var packsHtml=en.length?en.map(function(pid){var pp=null;var arr=(pl&&pl.plugins)||[];for(var i=0;i<arr.length;i++){if(arr[i].id===pid){pp=arr[i];break;}}return '<div class="module-placeholder"><b>'+esc(pp?pp.name:pid)+'</b><br><span class="mut">'+esc(pp?(pp.prompt_pack||""):"")+'</span></div>';}).join(""):'<span class="mut">No skill packs enabled yet. Use the Plugins card.</span>';var chainHtml=(function(){var evs=d.recent_events||[];var tx="";var n=0;for(var i=0;i<evs.length;i++){var e=evs[i];if((e.state||"")==="chain"){n++;if(!tx){var mm=((e.bubble||"")+(e.action||"")).match(/[0-9a-f]{64}/);if(mm)tx=mm[0];}}}if(!n)return '<span class="mut">No on-chain anchors in recent events yet.</span>';var h=tx?("0x"+tx):"";return '<b style="color:var(--green)">[ON-CHAIN &#10003;]</b> '+n+' anchored event(s) in recent log'+(h?' &middot; <a class="mono" href="https://sepolia.etherscan.io/tx/'+esc(h)+'" target="_blank" rel="noopener">'+h.slice(0,10)+'&#8230;</a>':"");})();var moduleLabels={upload:"Multi-modal Upload (PDF/image/link)",delegation:"Delegation Board",simulation:"Simulation Runner",draft_queue:"Draft Approval Queue",audit_viewer:"Audit Report Viewer",dependency_graph:"Dependency Graph (text)",redesign_editor:"Redesign Proposal Editor",spec_input:"Spec Input",code_diff:"Code Diff Viewer",test_runner:"Test Runner + Results",pr_creator:"PR Creator",research_input:"Research Input",source_list:"Source List with Citations",trend_chart:"Trend Chart (text)",report_gen:"Report Generator",platform_selector:"Platform Selector (X/LinkedIn/devlog)",tone_selector:"Tone Selector",draft_composer:"Draft Composer",approval_queue:"Approval Queue + Telegram",mention_monitor:"Mention Monitor",scope_selector:"Scope Selector",cve_dashboard:"CVE Dashboard",breaking_flags:"Breaking-Change Flags",compliance_checklist:"Compliance Checklist",routine_list:"Routine List + Run Buttons",handoff_timeline:"Handoff Timeline",pipeline_health:"Pipeline Health",ops_summary:"Ops Summary Generator",alert_log:"Alert Log",script_editor:"Script Editor",shot_list:"Shot List",render_queue:"Render Queue",asset_library:"Asset Library",publish_approval:"Publish Approval Gate",schedule_calendar:"Schedule Calendar",dataset_input:"Dataset Input",notebook_runner:"Notebook Runner",chart_gallery:"Chart Gallery",model_card:"Model Card"};var modulesHtml=d.modules.length?d.modules.map(function(m){if(m==="report_gen"){return '<div class="modal-section" style="margin:6px 0"><h4>Report Generator</h4><div class="row"><button class="btn" data-act="rep-load-list">refresh list</button></div><div id="repList" class="mut" style="margin-top:5px">loading&#8230;</div><div class="answer mut" id="repView" style="margin-top:6px">Select a report to read.</div></div>';}return '<div class="module-placeholder"><b>'+esc(moduleLabels[m]||m)+'</b><br><span class="mut">Planned module (not built yet). Enabled for '+esc(d.role)+' agents.</span></div>';}).join(""):'<span class="mut">No specialized modules for this role yet.</span>';$("modalBody").innerHTML='<div class="modal-section"><h4>Brain Chain</h4>'+brainHtml+'</div><div class="modal-section"><h4>Current State</h4><div><b>'+esc(d.state)+'</b>: '+esc(d.bubble)+'</div><div class="mut" style="margin-top:4px">Action: '+esc(d.action)+' &middot; Cadence: '+d.cadence_hours+'h &middot; Autonomous: '+(d.autonomous?"yes":"no")+' &middot; Enabled: '+(d.enabled?"yes":"no")+'</div></div><div class="modal-section"><h4>Role-Specific Modules ('+esc(d.role)+')</h4>'+modulesHtml+'</div><div class="modal-section"><h4>Chain Anchors</h4>'+chainHtml+'</div><div class="modal-section"><h4>Skill Packs ('+en.length+')</h4>'+packsHtml+'</div><div class="modal-section"><h4>Recent Events</h4>'+eventsHtml+'</div><div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button class="btn btn-primary" data-act="open-solve" data-id="'+esc(d.id)+'">Solve Problem</button><button class="btn" data-act="toggle-auto" data-id="'+esc(d.id)+'">'+(d.autonomous?"auto:ON":"auto:OFF")+'</button><button class="btn" data-act="toggle-en" data-id="'+esc(d.id)+'">'+(d.enabled?"live":"paused")+'</button><button class="btn btn-danger" data-act="rm-agent" data-id="'+esc(d.id)+'">Remove Agent</button></div>';var ob=document.querySelector('#modalBody [data-act="open-solve"]');if(ob&&d.role!=="Solver")ob.style.display="none";$("solveSection").style.display="none";$("delegateSection").style.display="none";$("delegateBoard").innerHTML="Run Solver to populate.";__DELEG=[];$("solveOverview").value="";$("solveGoal").value="";$("solveTimeline").value="";$("solveOut").textContent="Solver response will appear here...";$("solveOut").className="answer mut";$("agentModal").classList.add("show");if((d.modules||[]).indexOf("report_gen")>=0){loadRepList();}}catch(e){toast("error loading agent: "+e.message,"err");}}
 async function act(a,id,btn){try{
+ if(a==="open-settings"){var sm=$("setModal");if(sm)sm.classList.add("show");jget("/api/settings").then(function(s){var r=$("setRecall");if(r)r.value=(s.memory_recall_k!==undefined?s.memory_recall_k:5);}).catch(function(){});markAccent();return;}
+ if(a==="open-plugins"){var pm=$("plugModal");if(pm)pm.classList.add("show");loadPlugins();return;}
+ if(a==="close-plugins"){$("plugModal").classList.remove("show");return;}
+ if(a==="open-tutorial"){var tm=$("tutModal");if(tm)tm.classList.add("show");return;}
+ if(a==="close-tutorial"){$("tutModal").classList.remove("show");return;}
+ if(a==="set-accent"){setAccent(id);return;}
+ if(a==="close-settings"){$("setModal").classList.remove("show");return;}
+ if(a==="save-recall"){var rv=parseInt($("setRecall").value,10);if(isNaN(rv)||rv<0){toast("invalid recall","err");return;}await jpost("/api/settings",{memory_recall_k:rv});toast("recall depth saved","ok");return;}
  if(a==="open-agent"){openAgentModal(id);return;}
  if(a==="close-modal"){$("agentModal").classList.remove("show");return;}
  if(a==="open-solve"){var ss=$("solveSection");if(ss)ss.style.display="block";var rb=$("runSolveBtn");if(rb)rb.setAttribute("data-id",id);__SOLVER_ID=id;return;}
@@ -167,4 +245,77 @@ $("plugAgent").addEventListener("change",function(){renderPlugins();});
 $("repoForm").addEventListener("submit",async function(ev){ev.preventDefault();var v=$("repoAdd").value.trim();if(!v||v.indexOf("/")<0){toast("needs owner/name","err");return;}var rs=CFG.repos.slice();if(rs.indexOf(v)<0)rs.push(v);try{await jpost("/api/settings",{repos:rs});toast("repo added","ok");$("repoAdd").value="";await loadSettings();}catch(e){toast("error: "+e.message,"err");}});
 async function boot(){try{await loadSettings();}catch(e){toast("settings load failed: "+e.message,"err");}try{await loadEnv();}catch(e){}try{await loadFreeApis();}catch(e){}try{await loadPlugins();}catch(e){}try{await loadMem();}catch(e){}await loadState();await loadActivity();setInterval(loadState,3000);setInterval(loadActivity,5000);setInterval(loadSettings,10000);setInterval(loadEnv,15000);setInterval(loadMem,15000);}
 boot();
-</script></body></html>
+</script>
+<script>
+(function(){
+  var COL={working:'#3FB950',patrol:'#58a6ff',alert:'#F85149',coffee:'#D29922',idle:'#6e7681'};
+  function el(id){return document.getElementById(id);}
+  function donut(counts){
+    var tot=0,keys=Object.keys(counts);keys.forEach(function(k){tot+=counts[k];});
+    if(!tot)return '<span class="mut">no data</span>';
+    var r=40,c=2*Math.PI*r,off=0,seg='';
+    keys.forEach(function(k){var v=counts[k];if(!v)return;var frac=v/tot;
+      seg+='<circle r="'+r+'" cx="60" cy="60" fill="none" stroke="'+(COL[k]||'#39C6C0')+'" stroke-width="16" stroke-dasharray="'+(frac*c)+' '+c+'" stroke-dashoffset="'+(-off*c)+'" transform="rotate(-90 60 60)"/>';off+=frac;});
+    var leg=keys.map(function(k){return '<span><i style="background:'+(COL[k]||'#39C6C0')+'"></i>'+k+' '+counts[k]+'</span>';}).join('');
+    return '<svg viewBox="0 0 120 120" width="120" height="120">'+seg+'<text x="60" y="64" text-anchor="middle" fill="#E6E9ED" font-size="18" font-family="monospace">'+tot+'</text></svg><div class="legend">'+leg+'</div>';
+  }
+  function hbars(map){
+    var keys=Object.keys(map);if(!keys.length)return '<span class="mut">no data</span>';
+    var mx=Math.max.apply(null,keys.map(function(k){return map[k];}))||1;
+    return keys.sort(function(a,b){return map[b]-map[a];}).slice(0,8).map(function(k){
+      return '<div class="hbar"><span class="lbl">'+k+'</span><span class="tr"><i style="width:'+Math.round(map[k]/mx*100)+'%"></i></span><span class="n">'+map[k]+'</span></div>';}).join('');
+  }
+  function spark(vals){
+    if(!vals.length)return '<span class="mut">no data</span>';
+    var mx=Math.max.apply(null,vals)||1,w=220,h=60;
+    var pts=vals.map(function(v,i){return (i/(vals.length-1||1)*w)+','+(h-4-(v/mx)*(h-10));}).join(' ');
+    return '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="60"><polyline points="'+pts+'" fill="none" stroke="#39C6C0" stroke-width="2"/></svg>';
+  }
+  async function render(){
+    var K=el('teleKpis'),G=el('teleGrid');if(!K||!G)return;
+    var S=window.STATE||{agents:[]},C=window.CFG||{agents:{},limits:{}};
+    var ag=S.agents||[];
+    var states={},divs={},roles={},active=0;
+    ag.forEach(function(a){var st=(a.state||'idle').toLowerCase();states[st]=(states[st]||0)+1;
+      var d=a.division||'General';divs[d]=(divs[d]||0)+1;var r=a.role||'Operator';roles[r]=(roles[r]||0)+1;
+      if(a.autonomous&&a.enabled!==false)active++;});
+    var ev=[];try{var r=await fetch('/api/activity?limit=200');var j=await r.json();ev=j.events||[];}catch(e){}
+    var perAgent={},chain=0,buckets=new Array(12).fill(0);
+    ev.forEach(function(e,i){var a=e.agent||'?';perAgent[a]=(perAgent[a]||0)+1;if((e.state||'')==='chain')chain++;
+      buckets[Math.floor(i/ Math.max(1,Math.ceil(ev.length/12)))]++;});
+    var prov=Object.keys(S.per_provider||{}).length;
+    K.innerHTML=[['Agents',ag.length],['Active',active],['Divisions',Object.keys(divs).length],['Anchored',chain],['Providers',prov]]
+      .map(function(t){return '<div class="kpi"><div class="v">'+t[1]+'</div><div class="l">'+t[0]+'</div></div>';}).join('');
+    G.innerHTML='<div class="tele-box"><h3>State distribution</h3>'+donut(states)+'</div>'
+      +'<div class="tele-box"><h3>Agents per division</h3>'+hbars(divs)+'</div>'
+      +'<div class="tele-box"><h3>Agents per role</h3>'+hbars(roles)+'</div>'
+      +'<div class="tele-box"><h3>Activity volume</h3>'+spark(buckets)+'</div>'
+      +'<div class="tele-box"><h3>Top agents by events</h3>'+hbars(perAgent)+'</div>';
+  }
+  setTimeout(render,1500);setInterval(render,5000);
+})();
+</script>
+
+<script>
+function setAccent(hex){
+  var map={'#39C6C0':'#052422','#0EA5E9':'#04202e','#10B981':'#04241a','#EF4444':'#2a0808'};
+  var ink=map[hex]||'#052422';
+  var r=document.documentElement.style;
+  r.setProperty('--accent',hex); r.setProperty('--accent-ink',ink);
+  try{localStorage.setItem('sf-accent',hex);}catch(e){}
+  markAccent();
+}
+function markAccent(){
+  var cur=(getComputedStyle(document.documentElement).getPropertyValue('--accent')||'#39C6C0').trim();
+  var row=document.getElementById('accentRow'); if(!row)return;
+  var bs=row.querySelectorAll('[data-act="set-accent"]');
+  for(var i=0;i<bs.length;i++){
+    var on=bs[i].getAttribute('data-id').toLowerCase()===cur.toLowerCase();
+    bs[i].style.outline=on?'2px solid var(--ink)':'none';
+    bs[i].style.outlineOffset='2px';
+    bs[i].setAttribute('aria-pressed',on?'true':'false');
+  }
+}
+(function(){var a='#39C6C0';try{a=localStorage.getItem('sf-accent')||a;}catch(e){}setAccent(a);})();
+</script>
+</body></html>
