@@ -99,6 +99,8 @@ label{font-size:10px;color:var(--mut);display:block;margin-top:6px}
 <button class="btn" data-act="open-settings">Settings</button>
 <button class="btn" data-act="open-plugins">Plugins</button>
 <button class="btn" data-act="open-tutorial">Tutorial</button>
+           <button class="btn" id="connectWalletBtn" data-act="connect-wallet">Connect Wallet</button>
+           <span class="mono" id="walletStatus" style="margin-left:5px;font-size:10px;color:var(--mut)"></span>
 <span class="tag" id="clock"></span></header>
 <div class="wrap">
  <div class="card full"><h2>Telemetry &middot; Crew Performance &amp; Statistics</h2><div class="kpis" id="teleKpis"></div><div class="tele-grid" id="teleGrid"></div></div>
@@ -184,6 +186,7 @@ label{font-size:10px;color:var(--mut);display:block;margin-top:6px}
 </ol></div>
 </div></div>
 <div class="toast" id="toast"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js" type="application/javascript" onerror="console.error('ethers CDN failed');toast('ethers CDN failed to load; check network','err');"></script>
 <script>
 function $(id){return document.getElementById(id);}
 function esc(s){s=String(s);var m={"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"};var o="";for(var i=0;i<s.length;i++){o+=m[s[i]]||s[i];}return o;}
@@ -217,6 +220,21 @@ async function act(a,id,btn){try{
  if(a==="open-plugins"){var pm=$("plugModal");if(pm)pm.classList.add("show");loadPlugins();return;}
  if(a==="close-plugins"){$("plugModal").classList.remove("show");return;}
  if(a==="open-tutorial"){var tm=$("tutModal");if(tm)tm.classList.add("show");return;}
+            if(a==="connect-wallet"){
+                if(typeof window.ethers === 'undefined'){ toast("Ethers library missing","err"); return; }
+                if(!window.ethereum){ toast("No injected wallet (MetaMask?)","err"); return; }
+                window.ethereum.request({ method: 'eth_requestAccounts' })
+                .then(function(accounts){
+                    var addr = accounts[0];
+                    window.userAddress = addr;
+                    var short = addr.slice(0,6)+"..."+addr.slice(-4);
+                    $("walletStatus").textContent = short;
+                    $("connectWalletBtn").textContent = "Connected";
+                    toast("Wallet connected: "+short,"ok");
+                })
+                .catch(function(e){ toast("Connection rejected","err"); });
+                return;
+            }
  if(a==="close-tutorial"){$("tutModal").classList.remove("show");return;}
  if(a==="set-accent"){setAccent(id);return;}
  if(a==="close-settings"){$("setModal").classList.remove("show");return;}
@@ -245,6 +263,19 @@ $("plugAgent").addEventListener("change",function(){renderPlugins();});
 $("repoForm").addEventListener("submit",async function(ev){ev.preventDefault();var v=$("repoAdd").value.trim();if(!v||v.indexOf("/")<0){toast("needs owner/name","err");return;}var rs=CFG.repos.slice();if(rs.indexOf(v)<0)rs.push(v);try{await jpost("/api/settings",{repos:rs});toast("repo added","ok");$("repoAdd").value="";await loadSettings();}catch(e){toast("error: "+e.message,"err");}});
 async function boot(){try{await loadSettings();}catch(e){toast("settings load failed: "+e.message,"err");}try{await loadEnv();}catch(e){}try{await loadFreeApis();}catch(e){}try{await loadPlugins();}catch(e){}try{await loadMem();}catch(e){}await loadState();await loadActivity();setInterval(loadState,3000);setInterval(loadActivity,5000);setInterval(loadSettings,10000);setInterval(loadEnv,15000);setInterval(loadMem,15000);}
 boot();
+(function(){
+  if(typeof ethers==='undefined'||!window.ethereum)return;
+  window.ethereum.request({method:'eth_accounts'}).then(function(accs){
+    if(accs&&accs.length){
+      window.userAddress=accs[0];
+      var s=accs[0].slice(0,6)+"..."+accs[0].slice(-4);
+      var ws=document.getElementById('walletStatus');
+      var wb=document.getElementById('connectWalletBtn');
+      if(ws)ws.textContent=s;
+      if(wb)wb.textContent='Connected';
+    }
+  }).catch(function(){});
+})();
 </script>
 <script>
 (function(){
