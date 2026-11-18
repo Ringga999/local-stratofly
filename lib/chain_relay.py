@@ -86,6 +86,9 @@ def get_status():
         "wallet": _mask(_wallet_address()),
         "last_tx": _STATE["last_tx"],
         "last_error": _STATE["last_error"],
+        "signer": get_signer(),
+        "last_user_tx": _STATE.get("last_user_tx"),
+        "last_user_wallet": _STATE.get("last_user_wallet"),
     }
 
 def _anchor_job(agent_id, payload):
@@ -191,7 +194,32 @@ def prepare_anchor_payload(agent_id, payload, user_address):
     except Exception as ex:
         return {"ok": False, "error": str(ex)}
 
+def get_signer():
+    try:
+        return (settings.load().get("memory_signer") or "admin")
+    except Exception:
+        return "admin"
+
+def set_signer(mode):
+    mode = "user" if str(mode).strip() == "user" else "admin"
+    d = settings.load(); d["memory_signer"] = mode; settings.save(d); return mode
+
+def confirm_user_anchor(agent_id, tx_hash, user_address):
+    try:
+        memory.log_event(agent_id, "chain", "anchor", "-", tx_hash, -1)
+    except Exception:
+        pass
+    with _LOCK:
+        _STATE["last_tx"] = tx_hash
+        _STATE["last_user_tx"] = tx_hash
+        _STATE["last_user_wallet"] = user_address
+        _STATE["last_error"] = None
+        _STATE["last_ts"] = time.time()
+    return {"ok": True}
+
 def anchor_memory_async(agent_id, payload):
     if get_mode() != "hybrid":
+        return
+    if get_signer() == "user":
         return
     threading.Thread(target=_anchor_job, args=(agent_id, payload), daemon=True).start()

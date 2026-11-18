@@ -133,7 +133,9 @@ label{font-size:10px;color:var(--mut);display:block;margin-top:6px}
      <button class="btn" id="memToggle" data-act="mem-toggle">mode: -</button>
      <button class="btn" data-act="mem-refresh">refresh</button>
      <button class="btn btn-primary" data-act="test-user-anchor" style="margin-left:5px">Test User Anchor</button>
+     <button class="btn" id="memSigner" data-act="mem-signer">signer: -</button>
    </div>
+   <div id="userTxLine" class="mono" style="margin-top:6px"></div>
    <div class="mut" style="font-size:10px;margin-top:5px">Hybrid = local SQLite + hash anchored to Sepolia. Local always works; chain is the bonus proof.</div></div>
  <div class="card full"><h2>Activity Feed</h2><div id="activityBox" class="mut">loading&#8230;</div></div>
 </div>
@@ -201,7 +203,7 @@ async function loadRepList(){var box=$("repList");if(!box)return;box.textContent
 async function openRep(rid){var v=$("repView");if(!v)return;v.className="answer mut";v.textContent="loading...";try{var r=await jget("/api/report/"+rid);if(r.markdown===undefined){v.textContent=r.error||"error";}else if(String(r.markdown).trim()===""){v.className="answer";v.textContent="(report file exists but is empty)";}else{v.className="answer";v.textContent=r.markdown;}}catch(e){v.textContent="error: "+e.message;}}
 var MEM={mode:"-",configured:false,wallet:"",reason:"",last_tx:""};
 async function loadMem(){try{var m=await jget("/api/memory/status");MEM=m;renderMem();}catch(e){var b=$("memStatus");if(b)b.textContent="memory status unavailable";}}
-function renderMem(){var b=$("memStatus");if(!b)return;var link="";if(MEM.last_tx){var h=String(MEM.last_tx);if(h.indexOf("0x")!==0)h="0x"+h;link=' &middot; <a class="mono" href="https://sepolia.etherscan.io/tx/'+esc(h)+'" target="_blank" rel="noopener">last tx</a>';}var badge=(MEM.mode==="hybrid"&&MEM.configured)?' <span class="badge" style="color:var(--green);border-color:var(--green)">ON-CHAIN READY</span>':'';b.innerHTML='mode: <b>'+esc(MEM.mode)+'</b> &middot; wallet: <span class="mono">'+esc(MEM.wallet||"-")+'</span>'+badge+'<br><span class="mut">'+esc(MEM.reason||"")+'</span>'+link;var t=$("memToggle");if(t)t.textContent="mode: "+MEM.mode+" (click to switch)";}
+function renderMem(){var b=$("memStatus");if(!b)return;var link="";if(MEM.last_tx){var h=String(MEM.last_tx);if(h.indexOf("0x")!==0)h="0x"+h;link=' &middot; <a class="mono" href="https://sepolia.etherscan.io/tx/'+esc(h)+'" target="_blank" rel="noopener">last tx</a>';}var badge=(MEM.mode==="hybrid"&&MEM.configured)?' <span class="badge" style="color:var(--green);border-color:var(--green)">ON-CHAIN READY</span>':'';b.innerHTML='mode: <b>'+esc(MEM.mode)+'</b> &middot; wallet: <span class="mono">'+esc(MEM.wallet||"-")+'</span>'+badge+'<br><span class="mut">'+esc(MEM.reason||"")+'</span>'+link;var t=$("memToggle");if(t)t.textContent="mode: "+MEM.mode+" (click to switch)";var sg=$("memSigner");if(sg)sg.textContent="signer: "+(MEM.signer||"admin")+" (click)";var ul=$("userTxLine");if(ul){if(MEM.last_user_tx){var h=String(MEM.last_user_tx);if(h.indexOf("0x")!==0)h="0x"+h;ul.innerHTML='last user anchor: <a href="https://sepolia.etherscan.io/tx/'+esc(h)+'" target="_blank" rel="noopener">'+esc(h.slice(0,14))+'&#8230;</a> by <span class="mono">'+esc(MEM.last_user_wallet||"")+'</span>';}else{ul.innerHTML='<span class="mut">no user anchor yet</span>';}}}
 var PLUG={plugins:[],enabled:{}};
 async function loadPlugins(){try{var r=await jget("/api/plugins");PLUG=r||{plugins:[],enabled:{}};renderPlugins();}catch(e){var b=$("pluginsBox");if(b)b.textContent="plugins unavailable";}}
 function renderPlugins(){var box=$("pluginsBox");if(!box)return;var sel=$("plugAgent");var aid=sel?sel.value:"";var en=(PLUG.enabled||{})[aid]||[];var rows=(PLUG.plugins||[]).map(function(p){var on=en.indexOf(p.id)>=0;var link=p.repo?'<a class="mono" href="'+esc(p.repo)+'" target="_blank" rel="noopener">'+esc(p.repo.replace("https://github.com/",""))+'</a>':'<span class="mut">link pending - paste URL to catalog</span>';return '<div class="deleg-row"><div class="hd"><span class="tk"><b>'+esc(p.name)+'</b> <span class="badge">'+esc(p.category||"")+'</span> <span class="badge">'+esc(p.status||"")+'</span></span><button class="btn '+(on?"btn-primary":"")+'" data-act="plug-toggle" data-id="'+esc(p.id)+'">'+(on?"ON":"OFF")+'</button></div><div class="mut" style="font-size:10px;margin-top:3px">'+link+' &middot; '+esc(p.notes||"")+'</div></div>';}).join("");box.innerHTML=rows||'<span class="mut">no plugins cataloged</span>';}
@@ -240,7 +242,8 @@ async function act(a,id,btn){try{
  if(a==="set-accent"){setAccent(id);return;}
  if(a==="close-settings"){$("setModal").classList.remove("show");return;}
  if(a==="save-recall"){var rv=parseInt($("setRecall").value,10);if(isNaN(rv)||rv<0){toast("invalid recall","err");return;}await jpost("/api/settings",{memory_recall_k:rv});toast("recall depth saved","ok");return;}
-            if(a==="test-user-anchor"){
+            if(a==="mem-signer"){var nx=(MEM.signer==="user")?"admin":"user";await jpost("/api/memory/signer",{signer:nx});toast("signer -> "+nx,"ok");await loadMem();return;}
+ if(a==="test-user-anchor"){
                 if(!window.userAddress){toast("Connect wallet first","err");return;}
                 var out=$("memStatus"); out.textContent="Preparing payload...";
                 jpost("/api/memory/prepare-anchor",{agent_id:"scout",payload:"test user anchor "+Date.now(),user_address:window.userAddress})
@@ -273,8 +276,8 @@ async function act(a,id,btn){try{
  if(a==="rm-repo"){var rs=CFG.repos.filter(function(x){return x!==id;});var r=await jpost("/api/settings",{repos:rs});toast("repos updated","ok");await loadSettings();return;}
 }catch(e){toast("error: "+e.message,"err");}}
 document.addEventListener("click",function(ev){var b=ev.target.closest("[data-act]");if(!b)return;act(b.getAttribute("data-act"),b.getAttribute("data-id"),b);});
-$("addForm").addEventListener("submit",async function(ev){ev.preventDefault();var body={id:$("aId").value.trim(),division:$("aDiv").value.trim()||"General",role:$("aRole").value,brain:$("aBrain").value,cadence_hours:parseInt($("aCad").value,10)||6,autonomous:$("aAuto").checked};if(!body.id){toast("id required","err");return;}try{var r=await jpost("/api/agent/add",body);toast(r.msg||(r.ok?"created":"failed"),r.ok?"ok":"err");if(r.ok){$("aId").value="";await loadSettings();await loadState();}}catch(e){toast("error: "+e.message,"err");}});
-$("askForm").addEventListener("submit",async function(ev){ev.preventDefault();var prompt=$("askText").value.trim();if(!prompt){toast("type a prompt","err");return;}var agent=$("askAgent").value||"scout";var out=$("askOut");out.className="answer mut";out.textContent="thinking...";try{var r=await jpost("/api/ask",{prompt:prompt,agent_id:agent});out.className="answer";out.textContent=r.answer||(r.error||"(empty response)");}catch(e){out.className="answer";out.textContent="error: "+e.message;}});
+$("addForm").addEventListener("submit",async function(ev){ev.preventDefault();var body={id:$("aId").value.trim(),division:$("aDiv").value.trim()||"General",role:$("aRole").value,brain:$("aBrain").value,cadence_hours:parseInt($("aCad").value,10)||6,autonomous:$("aAuto").checked};if(!body.id){toast("id required","err");return;}try{var r=await jpost("/api/agent/add",body);toast(r.msg||(r.ok?"created":"failed"),r.ok?"ok":"err");if(r.ok){$("aId").value="";await loadSettings();await loadState();maybeUserAnchor(body.id,"agent_added:"+body.id);}}catch(e){toast("error: "+e.message,"err");}});
+$("askForm").addEventListener("submit",async function(ev){ev.preventDefault();var prompt=$("askText").value.trim();if(!prompt){toast("type a prompt","err");return;}var agent=$("askAgent").value||"scout";var out=$("askOut");out.className="answer mut";out.textContent="thinking...";try{var r=await jpost("/api/ask",{prompt:prompt,agent_id:agent});out.className="answer";out.textContent=r.answer||(r.error||"(empty response)");maybeUserAnchor(agent,"ask:"+prompt.slice(0,64));}catch(e){out.className="answer";out.textContent="error: "+e.message;}});
 $("plugAgent").addEventListener("change",function(){renderPlugins();});
 $("repoForm").addEventListener("submit",async function(ev){ev.preventDefault();var v=$("repoAdd").value.trim();if(!v||v.indexOf("/")<0){toast("needs owner/name","err");return;}var rs=CFG.repos.slice();if(rs.indexOf(v)<0)rs.push(v);try{await jpost("/api/settings",{repos:rs});toast("repo added","ok");$("repoAdd").value="";await loadSettings();}catch(e){toast("error: "+e.message,"err");}});
 async function boot(){try{await loadSettings();}catch(e){toast("settings load failed: "+e.message,"err");}try{await loadEnv();}catch(e){}try{await loadFreeApis();}catch(e){}try{await loadPlugins();}catch(e){}try{await loadMem();}catch(e){}await loadState();await loadActivity();setInterval(loadState,3000);setInterval(loadActivity,5000);setInterval(loadSettings,10000);setInterval(loadEnv,15000);setInterval(loadMem,15000);}
@@ -364,5 +367,18 @@ function markAccent(){
   }
 }
 (function(){var a='#39C6C0';try{a=localStorage.getItem('sf-accent')||a;}catch(e){}setAccent(a);})();
+</script>
+<script>
+function userAnchor(aid,payload){
+  return jpost("/api/memory/prepare-anchor",{agent_id:aid,payload:payload,user_address:window.userAddress})
+  .then(function(r){ if(!r.ok){toast("prepare: "+r.error,"err");return;}
+    return window.ethereum.request({method:"eth_sendTransaction",params:[r.payload]})
+    .then(function(tx){ return jpost("/api/memory/confirm-anchor",{agent_id:aid,tx:tx,user_address:window.userAddress})
+      .then(function(){ toast("anchored by your wallet: "+String(tx).slice(0,10)+"...","ok"); loadMem(); loadActivity(); }); }); })
+  .catch(function(e){ toast("anchor: "+(e.message||e),"err"); });
+}
+function maybeUserAnchor(aid,payload){
+  if((MEM.signer||"admin")==="user" && window.userAddress && window.ethereum){ userAnchor(aid,payload); }
+}
 </script>
 </body></html>

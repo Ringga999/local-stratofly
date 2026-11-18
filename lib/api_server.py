@@ -418,6 +418,18 @@ def _prepare_anchor(body):
         return {"ok": False, "error": "missing agent_id, payload, or user_address"}
     return chain_relay.prepare_anchor_payload(agent_id, payload, user_address)
 
+def _memory_signer(body):
+    m = chain_relay.set_signer(body.get("signer") or "")
+    return {"ok": True, "signer": m, "status": chain_relay.get_status()}
+
+def _confirm_anchor(body):
+    aid = (body.get("agent_id") or "").strip()
+    tx = (body.get("tx") or "").strip()
+    ua = (body.get("user_address") or "").strip()
+    if not aid or not tx:
+        return {"ok": False, "error": "missing agent_id or tx"}
+    return chain_relay.confirm_user_anchor(aid, tx, ua)
+
 def _memory_status():
     return chain_relay.get_status()
 
@@ -526,6 +538,10 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(_mock_stop())
             elif p == "/api/memory/prepare-anchor":
                 self._send_json(_prepare_anchor(b))
+            elif p == "/api/memory/signer":
+                self._send_json(_memory_signer(b))
+            elif p == "/api/memory/confirm-anchor":
+                self._send_json(_confirm_anchor(b))
             elif p == "/api/memory/mode":
                 self._send_json(_memory_mode(b))
             elif p == "/api/plugins/toggle":
