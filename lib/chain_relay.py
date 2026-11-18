@@ -132,6 +132,65 @@ def _anchor_job(agent_id, payload):
             _STATE["last_error"] = str(ex)
         print("[chain] anchor failed (local copy kept): " + str(ex))
 
+
+def prepare_anchor_payload(agent_id, payload, user_address):
+    """Build unsigned tx payload for frontend wallet signing (User-Owned)."""
+    if not WEB3_OK:
+        return {"ok": False, "error": "web3 not installed"}
+    try:
+        e = _env()
+        rpc = e.get("SEPOLIA_RPC_URL") or "https://rpc.sepolia.org"
+        w3 = Web3(Web3.HTTPProvider(rpc, request_kwargs={"timeout": 10}))
+        if not w3.is_connected():
+            return {"ok": False, "error": "rpc unreachable"}
+        
+        addr = Web3.to_checksum_address((e.get("STRATOFLY_CONTRACT_ADDRESS") or "").strip())
+        c = w3.eth.contract(address=addr, abi=ABI)
+        mem_hash = "0x" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        
+        # Normalize user address to EIP-55 checksum (wallets may send lowercase)
+        if not Web3.is_address(user_address):
+            return {"ok": False, "error": "invalid user address"}
+        user_address = Web3.to_checksum_address(user_address)
+        # Get nonce for the USER'S wallet, not admin
+        nonce = w3.eth.get_transaction_count(user_address)
+        
+        tx = c.functions.anchor(agent_id, mem_hash).build_transaction({
+            "from": user_address,
+            "nonce": nonce,
+            "chainId": 11155111,
+            "gas": 300000,
+            "gasPrice": w3.eth.gas_price,
+            "value": 0
+        })
+        # MetaMask requires every numeric field as a 0x-hex STRING, not int/bytes.
+        def _hx(v):
+            if isinstance(v, bool):
+                return v
+            if isinstance(v, int):
+                return hex(v)
+            if isinstance(v, (bytes, bytearray)):
+                return "0x" + bytes(v).hex()
+            s = str(v)
+            if s.startswith("0x"):
+                return s
+            if s.isdigit():
+                return hex(int(s))
+            return s
+        payload = {
+            "from": tx["from"],
+            "to": tx["to"],
+            "nonce": _hx(tx["nonce"]),
+            "gas": _hx(tx["gas"]),
+            "gasPrice": _hx(tx["gasPrice"]),
+            "value": _hx(tx.get("value", 0)),
+            "data": _hx(tx.get("data", "0x")),
+            "chainId": _hx(tx["chainId"]),
+        }
+        return {"ok": True, "payload": payload}
+    except Exception as ex:
+        return {"ok": False, "error": str(ex)}
+
 def anchor_memory_async(agent_id, payload):
     if get_mode() != "hybrid":
         return

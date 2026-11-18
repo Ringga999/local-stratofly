@@ -132,6 +132,7 @@ label{font-size:10px;color:var(--mut);display:block;margin-top:6px}
    <div class="row" style="margin-top:6px">
      <button class="btn" id="memToggle" data-act="mem-toggle">mode: -</button>
      <button class="btn" data-act="mem-refresh">refresh</button>
+     <button class="btn btn-primary" data-act="test-user-anchor" style="margin-left:5px">Test User Anchor</button>
    </div>
    <div class="mut" style="font-size:10px;margin-top:5px">Hybrid = local SQLite + hash anchored to Sepolia. Local always works; chain is the bonus proof.</div></div>
  <div class="card full"><h2>Activity Feed</h2><div id="activityBox" class="mut">loading&#8230;</div></div>
@@ -239,6 +240,21 @@ async function act(a,id,btn){try{
  if(a==="set-accent"){setAccent(id);return;}
  if(a==="close-settings"){$("setModal").classList.remove("show");return;}
  if(a==="save-recall"){var rv=parseInt($("setRecall").value,10);if(isNaN(rv)||rv<0){toast("invalid recall","err");return;}await jpost("/api/settings",{memory_recall_k:rv});toast("recall depth saved","ok");return;}
+            if(a==="test-user-anchor"){
+                if(!window.userAddress){toast("Connect wallet first","err");return;}
+                var out=$("memStatus"); out.textContent="Preparing payload...";
+                jpost("/api/memory/prepare-anchor",{agent_id:"scout",payload:"test user anchor "+Date.now(),user_address:window.userAddress})
+                .then(function(r){
+                    if(!r.ok){out.textContent="Error: "+r.error;return;}
+                    out.textContent="Requesting MetaMask signature...";
+                    window.ethereum.request({method:"eth_sendTransaction",params:[r.payload]})
+                    .then(function(txHash){
+                        out.innerHTML="✅ Success! Tx: <a class='mono' href='https://sepolia.etherscan.io/tx/"+txHash+"' target='_blank'>"+txHash.slice(0,10)+"...</a>";
+                        loadMem();
+                    }).catch(function(e){out.textContent="Tx rejected: "+e.message;});
+                }).catch(function(e){out.textContent="Network error: "+e.message;});
+                return;
+            }
  if(a==="open-agent"){openAgentModal(id);return;}
  if(a==="close-modal"){$("agentModal").classList.remove("show");return;}
  if(a==="open-solve"){var ss=$("solveSection");if(ss)ss.style.display="block";var rb=$("runSolveBtn");if(rb)rb.setAttribute("data-id",id);__SOLVER_ID=id;return;}

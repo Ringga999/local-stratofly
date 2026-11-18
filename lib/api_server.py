@@ -409,6 +409,15 @@ def _plugin_toggle(body):
                                  (body.get("plugin_id") or "").strip(),
                                  bool(body.get("enabled")))
 
+
+def _prepare_anchor(body):
+    agent_id = (body.get("agent_id") or "").strip()
+    payload = (body.get("payload") or "").strip()
+    user_address = (body.get("user_address") or "").strip()
+    if not agent_id or not payload or not user_address:
+        return {"ok": False, "error": "missing agent_id, payload, or user_address"}
+    return chain_relay.prepare_anchor_payload(agent_id, payload, user_address)
+
 def _memory_status():
     return chain_relay.get_status()
 
@@ -515,6 +524,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(_mock_start())
             elif p == "/api/mock/stop":
                 self._send_json(_mock_stop())
+            elif p == "/api/memory/prepare-anchor":
+                self._send_json(_prepare_anchor(b))
             elif p == "/api/memory/mode":
                 self._send_json(_memory_mode(b))
             elif p == "/api/plugins/toggle":
@@ -530,7 +541,7 @@ def run(port=DEFAULT_PORT):
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     print("Stratofly control room  ->  http://localhost:" + str(port) + "/")
     print("  GET  /api/state /api/settings /api/env-status /api/free-apis /api/agent/<id> /api/activity /api/report/<id> /health")
-    print("  POST /api/ask /api/patrol /api/settings /api/agent/add /api/agent/remove /api/onboard /api/mock/start /api/mock/stop")
+    print("  POST /api/ask /api/patrol /api/settings /api/agent/add /api/agent/remove /api/onboard /api/mock/start /api/mock/stop /api/memory/prepare-anchor")
     print("  Ctrl+C to stop.")
     try:
         srv.serve_forever()
