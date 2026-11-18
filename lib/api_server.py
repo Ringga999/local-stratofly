@@ -558,8 +558,17 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
+class QuietServer(ThreadingHTTPServer):
+    def handle_error(self, request, client_address):
+        import sys
+        exc = sys.exc_info()[1]
+        if isinstance(exc, (ConnectionAbortedError, BrokenPipeError, ConnectionResetError)):
+            return  # client closed mid-write; benign -> stay quiet
+        ThreadingHTTPServer.handle_error(self, request, client_address)
+
+
 def run(port=DEFAULT_PORT):
-    srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    srv = QuietServer(("127.0.0.1", port), Handler)
     print("Stratofly control room  ->  http://localhost:" + str(port) + "/")
     print("  GET  /api/state /api/settings /api/env-status /api/free-apis /api/agent/<id> /api/activity /api/report/<id> /health")
     print("  POST /api/ask /api/patrol /api/settings /api/agent/add /api/agent/remove /api/onboard /api/mock/start /api/mock/stop /api/memory/prepare-anchor")
