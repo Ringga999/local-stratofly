@@ -1,5 +1,6 @@
 # lib/role_registry.py - data-driven role catalog (additive layer over persona.py).
 import json
+from datetime import datetime
 from pathlib import Path
 from lib import settings, persona, plugin_manager, memory
 
@@ -28,6 +29,14 @@ def role_names():
 
 def modules_for(role):
     return (_load().get(role) or {}).get("modules") or []
+
+def _now_block():
+    try:
+        n = datetime.now().astimezone()
+        return ("CURRENT TIME (real-time, local): " + n.isoformat(timespec="seconds")
+                + " | " + n.strftime("%A, %d %B %Y %H:%M %Z"))
+    except Exception:
+        return ""
 
 def system_prompt(agent_id, extra=""):
     cfg = settings.load()
@@ -59,4 +68,7 @@ def system_prompt(agent_id, extra=""):
     packs = plugin_manager.packs_for(agent_id)
     if packs:
         base = base + "\n\nENABLED SKILL PACKS:\n" + packs
+    nb = _now_block()
+    if nb:
+        base = base + "\n\n" + nb
     return base
