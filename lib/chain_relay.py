@@ -23,7 +23,8 @@ ABI = [
     {"inputs": [{"internalType": "string", "name": "agentId", "type": "string"}],
      "name": "getAnchor",
      "outputs": [{"internalType": "string", "name": "", "type": "string"},
-                 {"internalType": "uint256", "name": "", "type": "uint256"}],
+                 {"internalType": "uint256", "name": "", "type": "uint256"},
+                 {"internalType": "address", "name": "", "type": "address"}],
      "stateMutability": "view", "type": "function"}
 ]
 
@@ -135,6 +136,24 @@ def _anchor_job(agent_id, payload):
             _STATE["last_error"] = str(ex)
         print("[chain] anchor failed (local copy kept): " + str(ex))
 
+
+def read_anchor(agent_id):
+    """Read latest on-chain anchor for an agent (hash, timestamp, owner)."""
+    if not WEB3_OK:
+        return {"ok": False, "error": "web3 not installed"}
+    try:
+        e = _env()
+        rpc = e.get("SEPOLIA_RPC_URL") or "https://rpc.sepolia.org"
+        w3 = Web3(Web3.HTTPProvider(rpc, request_kwargs={"timeout": 10}))
+        if not w3.is_connected():
+            return {"ok": False, "error": "rpc unreachable"}
+        addr = Web3.to_checksum_address((e.get("STRATOFLY_CONTRACT_ADDRESS") or "").strip())
+        c = w3.eth.contract(address=addr, abi=ABI)
+        h, ts, owner = c.functions.getAnchor(agent_id).call()
+        return {"ok": True, "agent": agent_id, "memory_hash": h,
+                "timestamp": int(ts), "owner": owner}
+    except Exception as ex:
+        return {"ok": False, "error": str(ex)}
 
 def prepare_anchor_payload(agent_id, payload, user_address):
     """Build unsigned tx payload for frontend wallet signing (User-Owned)."""

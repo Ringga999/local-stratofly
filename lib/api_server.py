@@ -500,6 +500,11 @@ class Handler(BaseHTTPRequestHandler):
                         self._send_json({"error": "report not found"}, 404)
                 except Exception:
                     self._send_json({"error": "invalid id"}, 400)
+            elif p.startswith("/api/memory/anchor"):
+                aid = ""
+                if "agent=" in p:
+                    aid = p.split("agent=")[1].split("&")[0]
+                self._send_json(chain_relay.read_anchor(aid or "scout"))
             elif p == "/api/memory/status":
                 self._send_json(_memory_status())
             elif p == "/api/roles":
