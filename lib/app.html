@@ -90,6 +90,22 @@ label{font-size:10px;color:var(--mut);display:block;margin-top:6px}
 .legend i{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:4px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 .tut-video{display:flex;gap:10px;align-items:center;background:var(--card2);border:1px dashed var(--line);border-radius:8px;padding:12px}.tut-video svg{width:34px;height:34px;flex:none;color:var(--accent)}.tut-steps{margin:0;padding-left:18px;font-size:12px}.tut-steps li{margin:6px 0}.tut-steps b{color:var(--ink)}
+
+#ccdRead{--t:#39C6C0;--g:#10B981;--r:#EF4444;--a:#E8B44C;--b:#0EA5E9}
+#ccdRead .cr-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0}
+#ccdRead input,#ccdRead select{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:5px 7px;font-size:12px}
+#ccdRead input:focus,#ccdRead select:focus{outline:none;border-color:var(--t)}
+#ccdRead .cr-chip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:10px;border:1px solid;margin:2px}
+#ccdRead .cr-chip.ok{color:var(--g);border-color:var(--g)}
+#ccdRead .cr-chip.bad{color:var(--r);border-color:var(--r)}
+#ccdRead .cr-chip.warn{color:var(--a);border-color:var(--a)}
+#ccdRead .cr-list{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px}
+#ccdRead .cr-list::-webkit-scrollbar{width:8px}
+#ccdRead .cr-list::-webkit-scrollbar-thumb{background:var(--t);border-radius:8px}
+#ccdRead table{width:100%;border-collapse:collapse;font-size:12px}
+#ccdRead th{position:sticky;top:0;background:var(--card);text-align:left;padding:5px 8px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line)}
+#ccdRead td{padding:5px 8px;border-bottom:1px solid var(--line)}
+#ccdRead .cr-note{font-size:10px;color:var(--mut);margin-top:4px;line-height:1.5}
 </style></head><body>
 <header><h1><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg>Stratofly</h1><span class="tag">control room &middot; one crew, every free API</span>
 <span class="tag" id="online">&#9679; connecting&#8230;</span>
@@ -188,6 +204,7 @@ label{font-size:10px;color:var(--mut);display:block;margin-top:6px}
 <li><b>Tune in Settings.</b> Set recall depth (how many recent memories an agent sees) and pick the accent color.</li>
 </ol></div>
 </div></div>
+<div class="card full" id="ccdRead" style="margin-top:14px"></div>
 <div class="toast" id="toast"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js" type="application/javascript" onerror="console.error('ethers CDN failed');toast('ethers CDN failed to load; check network','err');"></script>
 <script>
@@ -380,5 +397,50 @@ function userAnchor(aid,payload){
 function maybeUserAnchor(aid,payload){
   if((MEM.signer||"admin")==="user" && window.userAddress && window.ethereum){ userAnchor(aid,payload); }
 }
+</script>
+
+<script>
+(function(){
+var root=document.getElementById('ccdRead'); if(!root)return;
+function esc(x){return String(x==null?'':x).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function toast(m,k){if(window.toast){window.toast(m,k||'ok');return;}var t=document.getElementById('toast');if(t){t.textContent=m;t.className='toast show '+(k||'ok');setTimeout(function(){t.className='toast';},2600);}}
+function j(u){return fetch(u).then(function(r){return r.json();});}
+root.innerHTML='<h2>Concordium &middot; Verify &amp; Browse <span class="mut" id="crSrc" style="font-size:10px"></span></h2>'+
+'<div class="cr-row"><input id="crBadge" placeholder="badge / token address (Base58)" style="flex:1;min-width:200px"><button class="btn btn-primary" id="crVerify">Verify</button></div>'+
+'<div id="crVerdict"></div>'+
+'<div class="cr-row"><select id="crNet"><option value="testnet">testnet</option><option value="mainnet">mainnet</option></select>'+
+'<input id="crQ" placeholder="search name / owner / id" style="flex:1;min-width:160px"><button class="btn" id="crRefresh">Refresh</button></div>'+
+'<div class="cr-list" id="crList"></div>'+
+'<div class="cr-note">Read-only: verify badge + browse registry via Concordium hosted MCP/REST. No keys, no signing, no chain writes. Register (C1) comes later via your wallet.</div>';
+var $=function(id){return document.getElementById(id);};
+function verify(){
+  var b=$('crBadge').value.trim(); if(!b){toast('enter a badge','err');return;}
+  $('crVerdict').innerHTML='<span class="cr-note">checking…</span>';
+  j('/api/ccd/check-badge?badge='+encodeURIComponent(b)).then(function(r){
+    if(!r.ok){$('crVerdict').innerHTML='<span class="cr-chip bad">error</span> <span class="cr-note">'+esc(r.error)+'</span>';return;}
+    var d=r.data||{};
+    function chip(k,v){var c=v===true?'ok':(v===false?'bad':'warn');return '<span class="cr-chip '+c+'">'+esc(k)+': '+esc(v==null?'n/a':v)+'</span>';}
+    var iss=(d.issues||[]).map(function(i){return '<div class="cr-note">⚠ '+esc(i.field||'')+': '+esc(i.message||'')+'</div>';}).join('');
+    $('crVerdict').innerHTML=chip('badge_valid',d.badge_valid)+chip('extension_conformant',d.extension_conformant)+chip('verification_present',d.verification_present)+iss;
+  }).catch(function(e){$('crVerdict').innerHTML='<span class="cr-chip bad">'+esc(e.message)+'</span>';});
+}
+function browse(){
+  j('/api/ccd/agents?network='+$('crNet').value+'&q='+encodeURIComponent($('crQ').value)).then(function(r){
+    if(!r.ok){$('crList').innerHTML='<div class="cr-note">'+esc(r.error||'failed')+'</div>';return;}
+    $('crSrc').textContent=(r.source==='live'?'· live registry':'· offline sample');
+    var rows=(r.agents||[]).map(function(a){
+      var st=a.status==='Active'?'<span class="cr-chip ok">Active</span>':'<span class="cr-chip bad">Revoked</span>';
+      return '<tr><td><b>'+esc(a.name)+'</b><div class="cr-note">#'+esc(a.token_id==null?'?':a.token_id)+(a.agent_uri?' · '+esc(String(a.agent_uri).slice(0,40)):'')+'</div></td><td>'+st+'</td><td class="mono" style="font-size:10px">'+esc(a.owner?String(a.owner).slice(0,12)+'…':'—')+'</td><td><button class="btn" data-b="'+esc(a.token_id==null?'':a.token_id)+'" style="padding:2px 8px;font-size:10px">verify</button></td></tr>';
+    }).join('');
+    $('crList').innerHTML='<table><thead><tr><th>agent</th><th>status</th><th>owner</th><th></th></tr></thead><tbody>'+(rows||'<tr><td colspan="4" class="cr-note">no matches</td></tr>')+'</tbody></table>';
+    Array.prototype.forEach.call($('crList').querySelectorAll('[data-b]'),function(b){b.onclick=function(){$('crBadge').value=b.getAttribute('data-b');verify();};});
+  }).catch(function(e){$('crList').innerHTML='<div class="cr-note">'+esc(e.message)+'</div>';});
+}
+$('crVerify').onclick=verify;
+$('crRefresh').onclick=browse;
+$('crNet').onchange=browse;
+$('crQ').oninput=browse;
+browse();
+})();
 </script>
 </body></html>

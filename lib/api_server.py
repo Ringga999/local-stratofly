@@ -12,6 +12,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 from lib import memory, settings, model_kind, ask_handler, scheduler, mock
 from lib import onboard, persona, chain_relay, role_registry, plugin_manager
+from lib import concordium_read
 from config import REPORTS_DIR
 
 HERE = Path(__file__).resolve().parent
@@ -511,6 +512,16 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(_roles())
             elif p == "/api/plugins":
                 self._send_json(_plugins())
+            elif p.startswith("/api/ccd/"):
+                q = {}
+                if "?" in p:
+                    for kv in p.split("?", 1)[1].split("&"):
+                        if "=" in kv:
+                            k, v = kv.split("=", 1); q[k] = v
+                r = p.split("/api/ccd/")[1].split("?")[0]
+                if r == "check-badge": self._send_json(concordium_read.check_badge(q.get("badge", "")))
+                elif r == "agents": self._send_json(concordium_read.agents(q.get("network", "testnet"), q.get("q", "")))
+                else: self._send_json({"error": "not found"}, 404)
             elif p == "/health":
                 self._send_json({"status": "ok"})
             else:
