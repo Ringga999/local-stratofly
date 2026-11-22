@@ -12,6 +12,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 from lib import memory, settings, model_kind, ask_handler, scheduler, mock
 from lib import onboard, persona, chain_relay, role_registry, plugin_manager
+from lib import growth
 from lib import concordium_read
 from config import REPORTS_DIR
 
@@ -522,6 +523,18 @@ class Handler(BaseHTTPRequestHandler):
                 if r == "check-badge": self._send_json(concordium_read.check_badge(q.get("badge", "")))
                 elif r == "agents": self._send_json(concordium_read.agents(q.get("network", "testnet"), q.get("q", "")))
                 else: self._send_json({"error": "not found"}, 404)
+            elif p.startswith("/api/growth/"):
+                import urllib.parse
+                q = {}
+                if "?" in p:
+                    for kv in p.split("?", 1)[1].split("&"):
+                        if "=" in kv:
+                            k, v = kv.split("=", 1); q[k] = urllib.parse.unquote_plus(v)
+                r = p.split("/api/growth/")[1].split("?")[0]
+                if r == "dryrun": self._send_json(growth.dryrun(q))
+                else: self._send_json({"error": "not found"}, 404)
+            elif p.startswith("/work"):
+                self._send_html((Path(__file__).resolve().parent / "work.html").read_text(encoding="utf-8"))
             elif p == "/health":
                 self._send_json({"status": "ok"})
             else:

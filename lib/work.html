@@ -1,0 +1,84 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stratofly Workspace</title><style>
+:root{--bg:#0b0f12;--card:#12181c;--card2:#0f1418;--ink:#e8f1f0;--mut:#8aa3a0;--line:#1e2a2e;--t:#39C6C0;--g:#10B981;--r:#EF4444;--a:#E8B44C}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif}
+header{display:flex;gap:10px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--card)}
+header a{color:var(--t);text-decoration:none;font-size:12px}header h1{font-size:16px;margin:0}header .mut{color:var(--mut);font-size:11px}
+main{padding:16px 18px;max-width:1100px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+select,input,textarea,button{background:var(--card2);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:6px 8px;font-size:12px}
+textarea{width:100%;min-height:80px;font-family:monospace}
+button{cursor:pointer}button.primary{background:var(--t);color:#052422;border-color:var(--t);font-weight:600}
+.chip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:10px;border:1px solid;margin:2px}
+.chip.follow{color:var(--g);border-color:var(--g)}.chip.skip{color:var(--r);border-color:var(--r)}.chip.review{color:var(--a);border-color:var(--a)}
+.list{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:8px}
+.list::-webkit-scrollbar{width:8px}.list::-webkit-scrollbar-thumb{background:var(--t);border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:12px}th{position:sticky;top:0;background:var(--card);text-align:left;padding:6px 8px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line)}td{padding:6px 8px;border-bottom:1px solid var(--line)}
+.note{font-size:10px;color:var(--mut);line-height:1.5;margin-top:6px}pre{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:11px;max-height:240px;overflow:auto;white-space:pre-wrap}
+</style></head><body>
+<header><a href="/">&larr; Dashboard</a><h1>Workspace</h1><span class="mut" id="hMeta"></span></header>
+<main>
+<div class="card"><div class="row"><label>agent</label><select id="wAgent"></select><label>role</label><select id="wRole"></select><button id="wLoad">Load workspace</button></div><div class="note">Fitur hidup DI DALAM role. Dashboard tetap ringkas walau role bertambah. Pilih agent/role lalu muat workspace-nya.</div></div>
+<div id="wBody"></div>
+</main>
+<script>
+var SOCIAL={"SocialMedia":1,"GrowthOperator":1};
+function esc(x){return String(x==null?'':x).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function j(u){return fetch(u).then(function(r){return r.json();});}
+var AG=[],ROLES=["Solver","Architect","Crafter","Analyst","Communicator","Sentinel","Operator","DataScientist","SocialMedia","VideoEditor","GrowthOperator"];
+function boot(){
+  var q=new URLSearchParams(location.search);
+  j('/api/state').then(function(s){
+    AG=(s.agents||[]);
+    var a=document.getElementById('wAgent');
+    a.innerHTML=AG.map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.id)+' ('+esc(x.role||'?')+')</option>';}).join('');
+    var r=document.getElementById('wRole');
+    r.innerHTML=ROLES.map(function(x){return '<option>'+x+'</option>';}).join('');
+    if(q.get('agent'))a.value=q.get('agent');
+    if(q.get('role'))r.value=q.get('role');
+    else if(a.value){var m=AG.filter(function(x){return x.id===a.value;})[0];if(m)r.value=m.role||'Operator';}
+    render();
+  }).catch(function(e){document.getElementById('wBody').innerHTML='<div class="card note">state gagal: '+esc(e.message)+'</div>';});
+}
+document.getElementById('wLoad').onclick=render;
+function render(){
+  var aid=document.getElementById('wAgent').value, role=document.getElementById('wRole').value;
+  document.getElementById('hMeta').textContent=(aid||'-')+' · '+role;
+  if(SOCIAL[role])growth();else generic(aid,role);
+}
+function growth(){
+  document.getElementById('wBody').innerHTML='<div class="card"><b>Growth &middot; Copilot (dry-run)</b>'+
+  '<textarea id="gList" placeholder="handle,followers,following,mutual,active_days,visibility&#10;@alice,120,300,4,2,public"></textarea>'+
+  '<div class="row"><select id="gVis"><option value="any">visibility: any</option><option value="public">public</option><option value="private">private</option></select>'+
+  '<select id="gRatio"><option value="any">ratio: any</option><option value="lt">followers&lt;following</option><option value="gt">followers&gt;following</option></select>'+
+  '<input id="gMutual" type="number" min="0" value="0" style="width:70px"><input id="gActive" type="number" min="0" value="0" style="width:70px">'+
+  '<label class="note"><input type="checkbox" id="gBot"> not-bot</label><input id="gQuota" type="number" min="1" value="100" style="width:70px">'+
+  '<button class="primary" id="gRun">Dry-run</button><button id="gExport">Export</button></div>'+
+  '<div id="gSum"></div><div class="list" id="gOut"></div>'+
+  '<div class="note">Read-only: rencana + alasan. TANPA aksi nyata, TANPA kredensial, TANPA scraping.</div></div>';
+  var LAST=null;
+  document.getElementById('gRun').onclick=function(){
+    j('/api/growth/dryrun?list='+encodeURIComponent(document.getElementById('gList').value)+'&visibility='+document.getElementById('gVis').value+'&ratio='+document.getElementById('gRatio').value+'&mutual_min='+document.getElementById('gMutual').value+'&active_days='+document.getElementById('gActive').value+'&not_bot='+(document.getElementById('gBot').checked?1:0)+'&quota='+document.getElementById('gQuota').value).then(function(r){
+      if(!r.ok)return; LAST=r;var s=r.summary;
+      document.getElementById('gSum').innerHTML='<span class="chip follow">follow: '+s.follow+'</span><span class="chip skip">skip: '+s.skip+'</span><span class="chip review">review: '+s.review+'</span><span class="note">total '+s.total+'</span>';
+      document.getElementById('gOut').innerHTML='<table><thead><tr><th>handle</th><th>decision</th><th>reason</th></tr></thead><tbody>'+r.rows.map(function(x){return '<tr><td>@'+esc(x.handle)+'</td><td><span class="chip '+x.decision+'">'+x.decision+'</span></td><td>'+esc(x.reason)+'</td></tr>';}).join('')+'</tbody></table>';
+    });
+  };
+  document.getElementById('gExport').onclick=function(){
+    if(!LAST)return;var md='# Growth dry-run\n\n| handle | decision | reason |\n|---|---|---|\n'+LAST.rows.map(function(x){return '| @'+x.handle+' | '+x.decision+' | '+x.reason+' |';}).join('\n')+'\n';
+    var b=new Blob([md],{type:'text/markdown'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='growth-dryrun.md';a.click();URL.revokeObjectURL(a.href);
+  };
+}
+function generic(aid,role){
+  document.getElementById('wBody').innerHTML='<div class="card"><b>'+esc(role)+' &middot; workspace</b><div class="note">Generic workspace: persona + free prompt. Modul role-specific ditambahkan via mapping role&rightarrow;modules (W3).</div>'+
+  '<div class="row"><textarea id="aPrompt" placeholder="prompt untuk '+esc(aid)+'..."></textarea></div>'+
+  '<div class="row"><button class="primary" id="aSend">Send</button></div><pre id="aOut">Response appears here...</pre></div>';
+  document.getElementById('aSend').onclick=function(){
+    fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:document.getElementById('aPrompt').value,agent:aid})}).then(function(r){return r.json();}).then(function(r){
+      document.getElementById('aOut').textContent=r.answer||r.response||JSON.stringify(r);
+    });
+  };
+}
+boot();
+</script></body></html>
