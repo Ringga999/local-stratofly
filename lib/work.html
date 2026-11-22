@@ -23,11 +23,13 @@ table{width:100%;border-collapse:collapse;font-size:12px}th{position:sticky;top:
 <div id="wBody"></div>
 </main>
 
+
 <script>
 var SOCIAL={"SocialMedia":1,"GrowthOperator":1};
 var MODULES={"SocialMedia":["growth","mgmt"],"GrowthOperator":["growth","mgmt"]};
 function esc(x){return String(x==null?'':x).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function j(u){return fetch(u).then(function(r){return r.json();});}
+function getSet(a){try{return JSON.parse(localStorage.getItem('sf_set_'+a)||'{}');}catch(e){return{};}}
 var AG=[],ROLES=["Solver","Architect","Crafter","Analyst","Communicator","Sentinel","Operator","DataScientist","SocialMedia","VideoEditor","GrowthOperator"];
 function boot(){var q=new URLSearchParams(location.search);
  j('/api/state').then(function(s){AG=(s.agents||[]);
@@ -39,29 +41,52 @@ function boot(){var q=new URLSearchParams(location.search);
 document.getElementById('wLoad').onclick=render;
 function render(){var aid=document.getElementById('wAgent').value,role=document.getElementById('wRole').value;
  document.getElementById('hMeta').textContent=(aid||'-')+' · '+role;
- var mods=MODULES[role]||["generic"];
+ var mods=(MODULES[role]||["generic"]).concat(["settings"]);
  document.getElementById('wBody').innerHTML='<div class="card row" id="wTabs">'+mods.map(function(m,i){return '<button data-m="'+m+'" class="'+(i==0?'primary':'')+'">'+m+'</button>';}).join('')+'</div><div id="wMod"></div>';
  var show=function(m){var bs=document.getElementById('wTabs').querySelectorAll('button');for(var i=0;i<bs.length;i++)bs[i].className=(bs[i].getAttribute('data-m')===m?'primary':'');
-   if(m==='growth')growth();else if(m==='mgmt')mgmt(aid,role);else generic(aid,role);};
+   if(m==='growth')growth(aid);else if(m==='mgmt')mgmt(aid,role);else if(m==='settings')settings(aid,role);else generic(aid,role);};
  var bs=document.getElementById('wTabs').querySelectorAll('button');
  for(var i=0;i<bs.length;i++)(function(b){b.onclick=function(){show(b.getAttribute('data-m'));};})(bs[i]);
  show(mods[0]);}
-function growth(){document.getElementById('wMod').innerHTML='<div class="card"><b>Growth &middot; Copilot (dry-run)</b>'+
+function settings(aid,role){var S=getSet(aid),soc=SOCIAL[role];
+ document.getElementById('wMod').innerHTML='<div class="card"><b>Settings &middot; '+esc(role)+'</b>'+
+ '<div class="row"><label>persona note</label></div><textarea id="sNote" placeholder="instruksi tetap untuk agent ini">'+esc(S.note||'')+'</textarea>'+
+ '<div class="row"><label>cadence (jam)</label><input id="sCad" type="number" min="1" value="'+(S.cadence||6)+'" style="width:70px">'+
+ '<label>brain</label><select id="sBrain">'+["WORKHORSE","SPECIALIST","LIFELINE"].map(function(b){return '<option'+((S.brain||"WORKHORSE")===b?' selected':'')+'>'+b+'</option>';}).join('')+'</select>'+
+ '<label class="note"><input type="checkbox" id="sAuto"'+(S.autonomous?' checked':'')+'> autonomous</label></div>'+
+ (soc?('<div class="row"><label>quota</label><input id="sQuota" type="number" min="1" value="'+(S.quota||100)+'" style="width:70px">'+
+ '<label>visibility</label><select id="sVis">'+["any","public","private"].map(function(v){return '<option'+((S.visibility||"any")===v?' selected':'')+'>'+v+'</option>';}).join('')+'</select>'+
+ '<label>ratio</label><select id="sRatio">'+["any","lt","gt"].map(function(v){return '<option'+((S.ratio||"any")===v?' selected':'')+'>'+v+'</option>';}).join('')+'</select>'+
+ '<label>mutual min</label><input id="sMutual" type="number" min="0" value="'+(S.mutual_min||0)+'" style="width:70px">'+
+ '<label>max active days</label><input id="sActive" type="number" min="0" value="'+(S.active_days||0)+'" style="width:70px">'+
+ '<label class="note"><input type="checkbox" id="sBot"'+(S.not_bot?' checked':'')+'> not-bot</label>'+
+ '<label>tone</label><input id="sTone" value="'+esc(S.tone||'friendly')+'" style="width:100px"></div>'+
+ '<div class="row"><label>blacklist</label><input id="sBlack" placeholder="@a,@b" style="flex:1" value="'+esc(S.blacklist||'')+'">'+
+ '<label>whitelist</label><input id="sWhite" placeholder="@c" style="flex:1" value="'+esc(S.whitelist||'')+'"></div>'):'')+
+ '<div class="row"><button class="primary" id="sSave">Save settings</button><span class="note" id="sMsg"></span></div>'+
+ '<div class="note">Tersimpan lokal per-agent dan menjadi DEFAULT modul growth/mgmt. Persistensi server + injeksi persona = W5.</div></div>';
+ document.getElementById('sSave').onclick=function(){var o={note:document.getElementById('sNote').value,cadence:parseInt(document.getElementById('sCad').value,10)||6,brain:document.getElementById('sBrain').value,autonomous:document.getElementById('sAuto').checked};
+  if(soc){o.quota=parseInt(document.getElementById('sQuota').value,10)||100;o.visibility=document.getElementById('sVis').value;o.ratio=document.getElementById('sRatio').value;o.mutual_min=parseInt(document.getElementById('sMutual').value,10)||0;o.active_days=parseInt(document.getElementById('sActive').value,10)||0;o.not_bot=document.getElementById('sBot').checked;o.tone=document.getElementById('sTone').value;o.blacklist=document.getElementById('sBlack').value;o.whitelist=document.getElementById('sWhite').value;}
+  localStorage.setItem('sf_set_'+aid,JSON.stringify(o));document.getElementById('sMsg').textContent='tersimpan ✓';};}
+function growth(aid){var S=getSet(aid);
+ document.getElementById('wMod').innerHTML='<div class="card"><b>Growth &middot; Copilot (dry-run)</b>'+
  '<textarea id="gList" placeholder="handle,followers,following,mutual,active_days,visibility&#10;@alice,120,300,4,2,public"></textarea>'+
  '<div class="row"><select id="gVis"><option value="any">visibility: any</option><option value="public">public</option><option value="private">private</option></select>'+
  '<select id="gRatio"><option value="any">ratio: any</option><option value="lt">followers&lt;following</option><option value="gt">followers&gt;following</option></select>'+
  '<input id="gMutual" type="number" min="0" value="0" style="width:70px"><input id="gActive" type="number" min="0" value="0" style="width:70px">'+
  '<label class="note"><input type="checkbox" id="gBot"> not-bot</label><input id="gQuota" type="number" min="1" value="100" style="width:70px">'+
  '<button class="primary" id="gRun">Dry-run</button><button id="gExport">Export</button></div><div id="gSum"></div><div class="list" id="gOut"></div>'+
- '<div class="note">Read-only: rencana + alasan. TANPA aksi nyata, TANPA kredensial, TANPA scraping.</div></div>';
+ '<div class="note">Read-only: rencana + alasan. Default diambil dari tab settings.</div></div>';
+ document.getElementById('gQuota').value=S.quota||100;document.getElementById('gVis').value=S.visibility||'any';document.getElementById('gRatio').value=S.ratio||'any';document.getElementById('gMutual').value=S.mutual_min||0;document.getElementById('gActive').value=S.active_days||0;document.getElementById('gBot').checked=!!S.not_bot;
  var LAST=null;
  document.getElementById('gRun').onclick=function(){j('/api/growth/dryrun?list='+encodeURIComponent(document.getElementById('gList').value)+'&visibility='+document.getElementById('gVis').value+'&ratio='+document.getElementById('gRatio').value+'&mutual_min='+document.getElementById('gMutual').value+'&active_days='+document.getElementById('gActive').value+'&not_bot='+(document.getElementById('gBot').checked?1:0)+'&quota='+document.getElementById('gQuota').value).then(function(r){if(!r.ok)return;LAST=r;var s=r.summary;
   document.getElementById('gSum').innerHTML='<span class="chip follow">follow: '+s.follow+'</span><span class="chip skip">skip: '+s.skip+'</span><span class="chip review">review: '+s.review+'</span><span class="note">total '+s.total+'</span>';
   document.getElementById('gOut').innerHTML='<table><thead><tr><th>handle</th><th>decision</th><th>reason</th></tr></thead><tbody>'+r.rows.map(function(x){return '<tr><td>@'+esc(x.handle)+'</td><td><span class="chip '+x.decision+'">'+x.decision+'</span></td><td>'+esc(x.reason)+'</td></tr>';}).join('')+'</tbody></table>';});};
  document.getElementById('gExport').onclick=function(){if(!LAST)return;var md='# Growth dry-run\n\n| handle | decision | reason |\n|---|---|---|\n'+LAST.rows.map(function(x){return '| @'+x.handle+' | '+x.decision+' | '+x.reason+' |';}).join('\n')+'\n';var b=new Blob([md],{type:'text/markdown'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='growth-dryrun.md';a.click();URL.revokeObjectURL(a.href);};}
 function askAgent(aid,prompt,out){fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt,agent:aid})}).then(function(r){return r.json();}).then(function(r){document.getElementById(out).textContent=r.answer||r.response||JSON.stringify(r);}).catch(function(e){document.getElementById(out).textContent='err: '+e.message;});}
-function mgmt(aid,role){document.getElementById('wMod').innerHTML=
- '<div class="card"><b>Management &middot; Caption/Hashtag drafter</b><div class="row"><input id="mTopic" placeholder="topik/tema" style="flex:1"><input id="mTone" placeholder="tone" value="friendly" style="width:110px"><input id="mCount" type="number" min="1" max="5" value="3" style="width:60px"><button class="primary" id="mCap">Draft via agent</button></div><pre id="mCapOut">draft muncul di sini…</pre><button id="mCapCopy">Copy</button></div>'+
+function mgmt(aid,role){var S=getSet(aid);
+ document.getElementById('wMod').innerHTML=
+ '<div class="card"><b>Management &middot; Caption/Hashtag drafter</b><div class="row"><input id="mTopic" placeholder="topik/tema" style="flex:1"><input id="mTone" value="'+esc(S.tone||'friendly')+'" style="width:110px"><input id="mCount" type="number" min="1" max="5" value="3" style="width:60px"><button class="primary" id="mCap">Draft via agent</button></div><pre id="mCapOut">draft muncul di sini…</pre><button id="mCapCopy">Copy</button></div>'+
  '<div class="card"><b>Management &middot; Engagement reply drafter</b><textarea id="mComment" placeholder="paste komentar/DM yang ingin dibalas"></textarea><div class="row"><button class="primary" id="mRep">Draft reply</button></div><pre id="mRepOut">draft reply muncul di sini…</pre><button id="mRepCopy">Copy</button><div class="note">Human-approved: agent hanya MEN-DRAFT; Anda yang copy & posting manual (atau via connector kelak).</div></div>'+
  '<div class="card"><b>Management &middot; Content calendar (lokal)</b><div class="row"><input id="cDate" type="date"><input id="cTime" type="time"><input id="cNote" placeholder="catatan slot" style="flex:1"><button id="cAdd">Add slot</button><button id="cExp">Export</button></div><div class="list" id="cList"></div></div>';
  function copy(id,src){document.getElementById(id).onclick=function(){var t=document.getElementById(src).textContent;if(navigator.clipboard)navigator.clipboard.writeText(t);};}
@@ -74,7 +99,8 @@ function mgmt(aid,role){document.getElementById('wMod').innerHTML=
  document.getElementById('cAdd').onclick=function(){var L=load();L.push({d:document.getElementById('cDate').value,t:document.getElementById('cTime').value,n:document.getElementById('cNote').value});L.sort(function(a,b){return (a.d+a.t).localeCompare(b.d+b.t);});localStorage.setItem(KEY,JSON.stringify(L));draw();};
  document.getElementById('cExp').onclick=function(){var L=load();var md='# Content calendar '+aid+'\n\n| date | time | note |\n|---|---|---|\n'+L.map(function(x){return '| '+x.d+' | '+x.t+' | '+x.n+' |';}).join('\n')+'\n';var b=new Blob([md],{type:'text/markdown'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='calendar-'+aid+'.md';a.click();URL.revokeObjectURL(a.href);};
  draw();}
-function generic(aid,role){document.getElementById('wMod').innerHTML='<div class="card"><b>'+esc(role)+' &middot; workspace</b><div class="note">Generic: persona + free prompt. Modul role-specific via mapping MODULES.</div><div class="row"><textarea id="aPrompt" placeholder="prompt untuk '+esc(aid)+'..."></textarea></div><div class="row"><button class="primary" id="aSend">Send</button></div><pre id="aOut">Response appears here...</pre></div>';
- document.getElementById('aSend').onclick=function(){askAgent(aid,document.getElementById('aPrompt').value,'aOut');};}
+function generic(aid,role){var S=getSet(aid);
+ document.getElementById('wMod').innerHTML='<div class="card"><b>'+esc(role)+' &middot; workspace</b><div class="note">Generic: persona + free prompt. Persona note dari tab settings ikut disertakan.</div><div class="row"><textarea id="aPrompt" placeholder="prompt untuk '+esc(aid)+'..."></textarea></div><div class="row"><button class="primary" id="aSend">Send</button></div><pre id="aOut">Response appears here...</pre></div>';
+ document.getElementById('aSend').onclick=function(){var p=document.getElementById('aPrompt').value;if(S.note)p='Catatan tetap: '+S.note+'\n\n'+p;askAgent(aid,p,'aOut');};}
 boot();
 </script></body></html>
