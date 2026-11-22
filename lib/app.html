@@ -444,4 +444,25 @@ $('crQ').oninput=browse;
 browse();
 })();
 </script>
+
+<script>
+(function(){
+function grid(){var hs=document.querySelectorAll('h2');for(var i=0;i<hs.length;i++){if(/Live Crew/i.test(hs[i].textContent)){var c=hs[i].closest('.card')||hs[i].parentElement;return c.querySelector('.grid')||hs[i].nextElementSibling;}}return null;}
+var ROLE={};
+function roles(){fetch('/api/state').then(function(r){return r.json();}).then(function(s){(s.agents||[]).forEach(function(a){ROLE[a.id]=a.role;});}).catch(function(){});}
+roles(); setInterval(roles,15000);
+document.addEventListener('click',function(e){
+  var g=grid(); if(!g||e.target===g)return;
+  if(e.target.closest('button'))return;
+  var card=e.target; while(card&&card!==g&&card.parentElement!==g)card=card.parentElement;
+  if(!card||card===g)return;
+  var id=null,di=card.querySelector('[data-id]'); if(di)id=di.getAttribute('data-id');
+  if(!id){var b=card.querySelector('b');if(b)id=b.textContent.trim();}
+  if(!id){var m=card.textContent.match(/[A-Za-z0-9_\-]{2,}/);if(m)id=m[1];}
+  if(!id)return;
+  e.stopPropagation(); e.preventDefault();
+  location.href='/work?agent='+encodeURIComponent(id)+'&role='+encodeURIComponent(ROLE[id]||'');
+},true);
+})();
+</script>
 </body></html>
