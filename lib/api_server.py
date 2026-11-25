@@ -16,6 +16,11 @@ from lib import growth
 from lib import concordium_read
 from config import REPORTS_DIR
 
+_ALLOWED = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"
+def _safe_err(e):
+    print("[internal]", repr(e))
+    return "internal error"
+
 HERE = Path(__file__).resolve().parent
 APP_HTML = HERE / "app.html"
 DEFAULT_PORT = 8765
@@ -237,7 +242,7 @@ def _ask(body):
         chain_relay.anchor_memory_async(agent, "ask:" + prompt[:64])
         return {"ok": True, "answer": ans}
     except Exception as e:
-        return {"ok": False, "answer": "", "error": str(e)}
+        return {"ok": False, "answer": "", "error": _safe_err(e)}
 
 def _patrol_async():
     if not _PATROL_LOCK.acquire(blocking=False):
@@ -307,7 +312,7 @@ def _solve(body):
         )
         return {"ok": True, "answer": response}
     except Exception as e:
-        return {"ok": False, "answer": "", "error": str(e)}
+        return {"ok": False, "answer": "", "error": _safe_err(e)}
 
 
 def _parse_delegations(raw, agents):
@@ -358,7 +363,7 @@ def _solve_plan(body):
         dels = _parse_delegations(raw, agents)
         return {"ok": True, "answer": raw or "", "delegations": dels}
     except Exception as e:
-        return {"ok": False, "answer": "", "delegations": [], "error": str(e)}
+        return {"ok": False, "answer": "", "delegations": [], "error": _safe_err(e)}
 
 def _delegate(body):
     to_agent = (body.get("to_agent") or "").strip()
@@ -383,7 +388,7 @@ def _delegate(body):
         chain_relay.anchor_memory_async(to_agent, "delegated:" + frm + "->" + to_agent + ":" + task[:64])
         return {"ok": True, "answer": ans or "", "agent": to_agent}
     except Exception as e:
-        return {"ok": False, "answer": "", "error": str(e)}
+        return {"ok": False, "answer": "", "error": _safe_err(e)}
 
 def _reports_list():
     out = []
@@ -444,7 +449,7 @@ class Handler(BaseHTTPRequestHandler):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -497,6 +502,8 @@ class Handler(BaseHTTPRequestHandler):
                     rid = int(p.split("/api/report/")[1])
                     f = REPORTS_DIR / ("report_" + str(rid) + ".md")
                     if f.exists():
+                        if not rid or any(c not in _ALLOWED for c in str(rid)):
+                            self._send_json({"error": "bad id"}, 400); return
                         self._send_json({"schema": 2, "id": rid, "markdown": f.read_text(encoding="utf-8")})
                     else:
                         self._send_json({"error": "report not found"}, 404)
@@ -540,8 +547,15 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._send_json({"error": "not found"}, 404)
         except Exception as e:
-            self._send_json({"error": str(e)}, 500)
+            self._send_json({"error": _safe_err(e)}, 500)
     def do_POST(self):
+        if "application/json" not in (self.headers.get("Content-Type") or ""):
+            self._send_json({"error": "unsupported media type"}, 415); return
+        org = self.headers.get("Origin") or self.headers.get("Referer") or ""
+        if org:
+            from urllib.parse import urlparse
+            if (urlparse(org).hostname or "") not in ("localhost", "127.0.0.1"):
+                self._send_json({"error": "forbidden origin"}, 403); return
         try:
             p = self.path
             b = self._read_body()
@@ -578,7 +592,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._send_json({"error": "not found"}, 404)
         except Exception as e:
-            self._send_json({"error": str(e)}, 400)
+            self._send_json({"error": _safe_err(e)}, 400)
     def log_message(self, format, *args):
         pass
 
