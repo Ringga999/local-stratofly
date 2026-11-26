@@ -14,6 +14,7 @@ from lib import memory, settings, model_kind, ask_handler, scheduler, mock
 from lib import onboard, persona, chain_relay, role_registry, plugin_manager
 from lib import growth
 from lib import concordium_read
+from lib import ccd_adapter
 from config import REPORTS_DIR
 
 _ALLOWED = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"
@@ -520,6 +521,13 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(_roles())
             elif p == "/api/plugins":
                 self._send_json(_plugins())
+            elif p == "/static/concordium-web-sdk.js":
+                body = (Path(__file__).resolve().parent / "static" / "concordium-web-sdk.js").read_bytes()
+                self.send_response(200); self.send_header("Content-Type", "text/javascript; charset=utf-8"); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
+            elif p == "/ccd":
+                self._send_html((Path(__file__).resolve().parent / "ccd.html").read_text(encoding="utf-8"))
+            elif p == "/api/ccd/status":
+                self._send_json(ccd_adapter.status())
             elif p.startswith("/api/ccd/"):
                 q = {}
                 if "?" in p:
@@ -587,6 +595,14 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(_confirm_anchor(b))
             elif p == "/api/memory/mode":
                 self._send_json(_memory_mode(b))
+            elif p.startswith("/api/ccd/"):
+                r = p.split("/api/ccd/")[1].split("?")[0]
+                if r == "session": self._send_json(ccd_adapter.session(b.get("account", ""), b.get("genesis", "")))
+                elif r == "card": self._send_json(ccd_adapter.card(b.get("agent_id", ""), b.get("owner", ""), b.get("public_base_url", "")))
+                elif r == "prepare": self._send_json(ccd_adapter.prepare(b.get("owner", ""), b.get("agent_uri", ""), b.get("metadata_hash_hex", "")))
+                elif r == "confirm": self._send_json(ccd_adapter.confirm(b.get("owner", "")))
+                elif r == "pin": self._send_json(ccd_adapter.pin(b.get("token_id", ""), b.get("card_hash", ""), b.get("sender", "")))
+                else: self._send_json({"error": "not found"}, 404)
             elif p == "/api/plugins/toggle":
                 self._send_json(_plugin_toggle(b))
             else:
