@@ -23,3 +23,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Local copies of the adapted personas live in `agents/personas/`.
+
+
+## @concordium/web-sdk (vendored)
+- Version: 12.0.3
+- File: lib/static/concordium-web-sdk.js
+- Bytes: 381833
+- SHA-256: ce49be2199b36e6334a5615fd6c598e69adfd404ce46c67b6d407e1bd3f194a5
+- Source: https://cdn.jsdelivr.net/npm/@concordium/web-sdk@12.0.3/+esm (unduh sekali; runtime tanpa CDN)
+- License: Apache-2.0 (Concordium)
+- Simbol terverifikasi: CcdAmount (bukan GtuAmount), AccountAddress, ContractAddress, ReceiveName, AccountTransaction, ModuleReference, getModuleSource, serializeAccountTransaction
