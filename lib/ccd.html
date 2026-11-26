@@ -1,0 +1,50 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stratofly Concordium C1</title><style>
+:root{--bg:#0b0f12;--card:#12181c;--card2:#0f1418;--ink:#e8f1f0;--mut:#8aa3a0;--line:#1e2a2e;--t:#39C6C0;--g:#10B981;--r:#EF4444;--a:#E8B44C}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif}
+header{display:flex;gap:10px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--card)}header a{color:var(--t);text-decoration:none;font-size:12px}header h1{font-size:16px;margin:0}
+main{padding:16px 18px;max-width:1000px;margin:0 auto}.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}button{background:var(--card2);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer}button.primary{background:var(--t);color:#052422;border-color:var(--t);font-weight:600}button:disabled{opacity:.4;cursor:not-allowed}
+.chip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:10px;border:1px solid var(--mut);color:var(--mut);margin:2px}.chip.ok{color:var(--g);border-color:var(--g)}.chip.bad{color:var(--r);border-color:var(--r)}
+pre{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:11px;max-height:240px;overflow:auto;white-space:pre-wrap}.note{font-size:10px;color:var(--mut);line-height:1.5;margin-top:6px}
+</style></head><body>
+<header><a href="/">&larr; Dashboard</a><h1>Concordium C1</h1><span class="note" id="hNet"></span></header>
+<main>
+<div class="card"><div class="row" id="chips"></div><div class="row"><button class="primary" id="bConnect">Connect</button><button id="bCard">Card</button><button id="bPrepare">Prepare</button><button class="primary" id="bSubmit" disabled>Submit</button><button id="bConfirm">Confirm</button></div><div class="note">User-owned: wallet tanda tangan, engine tanpa key. Testnet-only.</div></div>
+<div class="card"><b>Log</b><pre id="log"></pre></div>
+</main>
+<script>
+var RAW="https://raw.githubusercontent.com/Ringga999/local-stratofly/main/docs/agent-card.json";
+var S={account:null,genesis:null,card:null,hash:null,prep:null,token:null,tx:null};
+function log(m){document.getElementById('log').textContent+=m+"\n";}
+function chips(){var c=[["session",S.account&&S.genesis],["card",S.card],["prepare",S.prep],["tx",S.tx],["registered",S.token]];
+ document.getElementById('chips').innerHTML=c.map(function(x){var v=x[1];return '<span class="chip '+(v?'ok':'')+'">'+x[0]+': '+(v?'ok':'pending')+'</span>';}).join('');
+ document.getElementById('bSubmit').disabled=!(S.prep&&S.account);}
+function jp(u,b){return fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
+document.getElementById('bConnect').onclick=function(){
+ if(!window.concordium){log("wallet not detected");return;}
+ window.concordium.requestAccounts().then(function(a){S.account=Array.isArray(a)?a[0]:a;return window.concordium.getSelectedChain?window.concordium.getSelectedChain():Promise.resolve("testnet");})
+ .then(function(g){S.genesis=g||"testnet";document.getElementById('hNet').textContent=S.genesis;return jp('/api/ccd/session',{account:S.account,genesis:S.genesis});})
+ .then(function(r){log("session: "+JSON.stringify(r));chips();}).catch(function(e){log("connect err: "+(e.message||e));});};
+document.getElementById('bCard').onclick=function(){jp('/api/ccd/card',{agent_id:"stratofly-crew",owner:S.account||"",public_base_url:RAW}).then(function(r){if(r.ok){S.card=r.card;S.hash=r.hash;log("card hash "+S.hash);}else log("card err "+r.error);chips();});};
+document.getElementById('bPrepare').onclick=function(){if(!S.hash){log("card first");return;}jp('/api/ccd/prepare',{owner:S.account,agent_uri:RAW,metadata_hash_hex:S.hash.replace(/^0x/,"")}).then(function(r){if(r.ok){S.prep=r.data;log("prepared CIS-8004.register @12802,0");}else log("prepare err "+r.error);chips();});};
+document.getElementById('bSubmit').onclick=function(){
+ if(!S.prep||!window.concordium){log("prepare/connect first");return;}
+ var addr={index:12802,subindex:0};
+ var tries=[
+  {type:"updateContract",payload:{amount:0,address:addr,receiveName:"CIS-8004.register",message:S.prep.parameter_hex},schema:"",schemaVer:0},
+  {type:"UpdateSmartContractInstance",payload:{amount:0,contractAddress:addr,receiveName:"CIS-8004.register",maxContractExecutionEnergy:30000},parameters:S.prep.parameter_json,schema:"",schemaVer:0},
+  {type:2,payload:{amount:0,address:addr,receiveName:"CIS-8004.register",message:S.prep.parameter_hex},schema:"",schemaVer:0}
+ ];
+ var i=0;
+ function next(){
+  if(i>=tries.length){log("semua tipe reject; perlu dokumentasi wallet v2.12");return;}
+  var t=tries[i++]; log("coba tipe: "+JSON.stringify(t.type)+" ...");
+  window.concordium.sendTransaction(S.account,t.type,t.payload,t.parameters||"",t.schema||"",t.schemaVer||0)
+  .then(function(tx){S.tx=tx;log("TX(tipe "+JSON.stringify(t.type)+"): "+tx);chips();})
+  .catch(function(e){var m=(e&&e.message)||String(e);log("  reject: "+m);if(m.indexOf("does not have a handler")>=0){next();}else{log("  -> stop di tipe ini");}});
+ }
+ next();
+};
+document.getElementById('bConfirm').onclick=function(){jp('/api/ccd/confirm',{owner:S.account||""}).then(function(r){if(r.ok&&r.new&&r.new.length){S.token=String(r.new[0].token_id);log("token_id: "+S.token);}else log("confirm: "+JSON.stringify(r).slice(0,300));chips();});};
+chips();log("C1 ready (rewrite bersih).");
+</script></body></html>
