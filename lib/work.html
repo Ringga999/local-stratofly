@@ -226,7 +226,7 @@ textarea{width:100%;min-height:70px;resize:vertical;font-family:var(--mono);font
               <th data-k="mutual">mutual <span class="ar"></span></th>
               <th data-k="active_days">aktif <span class="ar"></span></th>
               <th data-k="visibility">visib <span class="ar"></span></th>
-              <th data-k="decision">keputusan <span class="ar"></span></th>
+              <th data-k="decision" title="kuota dikonsumsi menurut urutan baris input, bukan urutan tampilan">keputusan <span class="ar"></span></th>
               <th>alasan</th>
             </tr></thead>
             <tbody id="tbody"></tbody>
@@ -249,7 +249,7 @@ textarea{width:100%;min-height:70px;resize:vertical;font-family:var(--mono);font
       <div class="list">
         <div class="grid2">
           <div class="field"><label>Caption / hashtag drafter</label><textarea id="capIn" placeholder="Brief: produk apa, sudut cerita, CTA…"></textarea>
-            <p style="display:flex;gap:6px"><select id="tone"><option>hangat</option><span></span><option>teknis</option><option>jenaka</option><option>formal</option></select><button id="capGen">buat draft</button></p></div>
+            <p style="display:flex;gap:6px"><select id="tone"><option>hangat</option><option>teknis</option><option>jenaka</option><option>formal</option></select><button id="capGen">buat draft</button></p></div>
           <div class="field"><label>Balasan engagement drafter</label><textarea id="repIn" placeholder="Tempel komentar/DM masuk…"></textarea>
             <p><button id="repGen">buat draft balasan</button></p></div>
         </div>
@@ -259,7 +259,7 @@ textarea{width:100%;min-height:70px;resize:vertical;font-family:var(--mono);font
     </section>
     <!-- QUEUE -->
     <section class="view" id="v-queue">
-      <div class="vhead"><h2>Approve queue</h2><span class="sp"></span><button id="undoLast">undo terakhir</button></div>
+      <div class="vhead"><h2>Approve queue</h2><span class="sp"></span><button id="undoLast">undo terakhir</button><span class="badge" style="margin-left:8px">item ter-rollback tetap terlihat di audit sebagai trail</span></div>
       <div class="list" id="queueList"></div>
     </section>
     <!-- AUDIT -->
@@ -371,7 +371,10 @@ function visible(){
 }
 function renderTable(){
   var rows=visible(), tb=$("tbody");
-  $("empty").hidden = S.rows.length>0;
+  var visN=rows.length; $("empty").hidden=!(S.rows.length===0||visN===0);
+  var eH=$("empty").querySelector("h3"), eP=$("empty").querySelector("p"), eT=$("empty").querySelector("textarea"), eB=$("empty").querySelectorAll("button");
+  if(S.rows.length>0&&visN===0){ eH.textContent="Tidak ada baris cocok"; eP.textContent="Search/filter/kriteria menyembunyikan semua prospek. Kosongkan search, set filter 'semua keputusan', atau tekan reset."; eT.style.display="none"; eB.forEach(function(b){b.style.display="none";}); }
+  else if(S.rows.length===0){ eH.textContent="Ledger kosong"; eP.textContent="Tempel daftar prospek (CSV: handle,pengikut,mengikuti,mutual,aktif_hari,visibilitas) atau muat contoh untuk melihat dry-run hidup."; eT.style.display=""; eB.forEach(function(b){b.style.display="";}); }
   $("tbl").style.display = S.rows.length? "":"none";
   tb.innerHTML = rows.map(function(r){
     return '<tr data-id="'+r.id+'" class="'+(S.sel[r.id]?"sel":"")+'">'
@@ -384,7 +387,7 @@ function renderTable(){
       + '<td class="reason" title="'+r.reason.replace(/"/g,"&quot;")+'">'+r.reason+'</td></tr>';
   }).join("");
   var s={follow:0,review:0,skip:0}; S.computed.forEach(function(r){s[r.decision]++;});
-  $("sum").innerHTML = '<span>total '+S.computed.length+'</span><span class="f">follow '+s.follow+'</span><span class="r">review '+s.review+'</span><span class="s">skip '+s.skip+'</span><span style="color:var(--dim)">kuota terpakai '+Math.min(s.follow,S.crit.quota)+'/'+S.crit.quota+'</span>';
+  $("sum").innerHTML = '<span>total '+S.computed.length+'</span>'+(rows.length!==S.computed.length?'<span style="color:var(--info)">terfilter '+rows.length+'</span>':'')+'<span class="f">follow '+s.follow+'</span><span class="r">review '+s.review+'</span><span class="s">skip '+s.skip+'</span><span style="color:var(--dim)">kuota terpakai '+Math.min(s.follow,S.crit.quota)+'/'+S.crit.quota+'</span>';
   $("stQuota").textContent = "kuota "+Math.min(s.follow,S.crit.quota)+"/"+S.crit.quota;
   document.querySelectorAll("thead th[data-k]").forEach(function(th){
     th.querySelector(".ar").textContent = th.dataset.k===S.sort.k ? (S.sort.d>0?"▲":"▼") : "";
@@ -535,17 +538,27 @@ function download(name,text,mime){
 }
 function exportMd(){
   var s={follow:0,review:0,skip:0}; S.computed.forEach(function(r){s[r.decision]++;});
-  var md="# Workbench report — @"+S.agent+" ("+S.role+")\n\n"
-    +"- waktu: "+new Date().toISOString()+"\n- mode: "+S.mode+(S.killed?" (KILLED)":"")+"\n- kriteria: "+JSON.stringify(S.crit)+"\n"
-    +"- ringkasan: follow "+s.follow+" / review "+s.review+" / skip "+s.skip+"\n\n| handle | pengikut | mengikuti | mutual | aktif | visib | keputusan | alasan |\n|---|---|---|---|---|---|---|---|\n"
-    + visible().map(function(r){ return "| @"+r.handle+" | "+r.followers+" | "+r.following+" | "+r.mutual+" | "+r.active_days+" | "+r.visibility+" | "+r.decision+" | "+r.reason+" |"; }).join("\n")
-    +"\n\n## Audit\n"+S.audit.map(function(a){return "- "+a.ts+" "+a.action+" "+a.target+" ["+a.status+"] "+a.reason;}).join("\n")+"\n";
-  download("workbench-"+S.agent+".md",md,"text/markdown"); log("export.md","@"+S.agent,visible().length+" baris","approved");
+  var vis=visible();
+  var pad=function(t,n){ t=String(t); while(t.length<n) t+=" "; return t.slice(0,n); };
+  var W=[22,10,10,7,7,8,10];
+  var head=pad("handle",W[0])+pad("pengikut",W[1])+pad("mengikuti",W[2])+pad("mutual",W[3])+pad("aktif",W[4])+pad("visib",W[5])+"keputusan  alasan";
+  var sep=""; for(var i=0;i<head.length;i++) sep+="-";
+  var body=vis.map(function(r){ return pad("@"+r.handle,W[0])+pad(fmt(r.followers),W[1])+pad(fmt(r.following),W[2])+pad(fmt(r.mutual),W[3])+pad(r.active_days==null?"-":r.active_days+"h",W[4])+pad(r.visibility||"-",W[5])+pad(r.decision,W[6])+r.reason; }).join("\n");
+  var narasi="Dari "+S.computed.length+" prospek: "+s.follow+" lolos follow (kuota harian "+S.crit.quota+", dikonsumsi menurut urutan baris input), "+s.review+" menunggu review manusia, "+s.skip+" dilewati kriteria. Tidak ada aksi otomatis; eksekusi tetap manual oleh operator (draft-only).";
+  var md="# Workbench report - @"+S.agent+" ("+S.role+")\n\n"
+    +"Waktu   : "+new Date().toISOString()+"\n"
+    +"Mode    : "+S.mode+(S.killed?" (KILLED)":"")+"\n"
+    +"Kriteria: "+JSON.stringify(S.crit)+"\n"
+    +"Tampilan: "+vis.length+" baris"+(vis.length!==S.computed.length?" (terfilter dari "+S.computed.length+")":"")+"\n\n"
+    +narasi+"\n\n```\n"+head+"\n"+sep+"\n"+body+"\n```\n\n"
+    +"## Antrean & audit\n"+S.audit.map(function(x){return "- "+x.ts+"  "+x.action+"  "+x.target+"  ["+x.status+"]  "+x.reason;}).join("\n")+"\n\n"
+    +"Catatan operasional: CSV pendamping memakai delimiter koma standar; pada Excel locale Indonesia buka via Data > From Text/CSV lalu pilih delimiter koma.\n";
+  download("workbench-"+S.agent+".md",md,"text/markdown"); log("export.md","@"+S.agent,vis.length+" baris","approved");
 }
 function exportCsv(){
-  var csv="handle,followers,following,mutual,active_days,visibility,decision,reason\n"
-    + visible().map(function(r){ return [r.handle,r.followers,r.following,r.mutual,r.active_days,r.visibility,r.decision,'"'+r.reason.replace(/"/g,'""')+'"'].join(","); }).join("\n");
-  download("workbench-"+S.agent+".csv",csv,"text/csv"); log("export.csv","@"+S.agent,visible().length+" baris","approved");
+  var rows=visible().map(function(r){ return [r.handle,r.followers,r.following,r.mutual,r.active_days,r.visibility,r.decision,'"'+r.reason.replace(/"/g,'""')+'"'].join(","); });
+  var csv="\ufeff"+"handle,followers,following,mutual,active_days,visibility,decision,reason\r\n"+rows.join("\r\n")+"\r\n";
+  download("workbench-"+S.agent+".csv",csv,"text/csv"); log("export.csv","@"+S.agent,rows.length+" baris","approved");
 }
 /* ============ settings ============ */
 function loadSettings(){
@@ -555,7 +568,7 @@ function loadSettings(){
   $("setBadge").className = "badge "+(s._srv?"ok":"warn");
 }
 function saveSettings(){
-  var s={note:$("setNote").value,tone:$("setTone").value,cadence:$("setCad").value,autonomous:$("setAuto").value};
+  var noteSan=$("setNote").value.replace(/\s+/g," ").trim().slice(0,500); var s={note:noteSan,tone:$("setTone").value,cadence:$("setCad").value,autonomous:$("setAuto").value};
   var done=function(srv){ s._srv=srv; lsSet("sf_set_"+S.agent,s); loadSettings(); log("settings.save","@"+S.agent,srv?"server W5":"localStorage fallback","approved"); toast(srv? "Settings tersimpan server.":"Endpoint W5 belum ada; tersimpan lokal (jujur)."); };
   if(S.srv){ fetch("/api/work/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({agent:S.agent,settings:s})}).then(function(r){ done(r.ok); }).catch(function(){ done(false); }); }
   else done(false);
@@ -574,7 +587,7 @@ function boot(){
 }
 function bind(){
   $("agentSel").onchange=function(){ S.agent=this.value; var me=S.agents.filter(function(a){return a.id===S.agent;})[0]; S.role=me?me.role:"Operator"; S.sel={}; S.inspect=null; boot(); };
-  $("qMinus").onclick=function(){ $("quota").value=Math.max(0,(+$("#quota"===0?0:$("quota").value)||0)-1); syncCrit(); };
+  $("qMinus").onclick=function(){ $("quota").value=Math.max(0,(parseInt($("quota").value,10)||0)-1); syncCrit(); };
   $("qPlus").onclick=function(){ $("quota").value=(+$("quota").value||0)+1; syncCrit(); };
   $("quota").oninput=syncCrit; $("vis").onchange=syncCrit; $("ratio").onchange=syncCrit;
   $("mutual").oninput=syncCrit; $("active").oninput=syncCrit; $("notbot").onchange=syncCrit;

@@ -624,8 +624,9 @@ class QuietServer(ThreadingHTTPServer):
 def run(port=DEFAULT_PORT):
     srv = QuietServer(("127.0.0.1", port), Handler)
     print("Stratofly control room  ->  http://localhost:" + str(port) + "/")
-    print("  GET  /api/state /api/settings /api/env-status /api/free-apis /api/agent/<id> /api/activity /api/report/<id> /health")
-    print("  POST /api/ask /api/patrol /api/settings /api/agent/add /api/agent/remove /api/onboard /api/mock/start /api/mock/stop /api/memory/prepare-anchor")
+    print("  GET  /api/state /api/settings /api/env-status /api/free-apis /api/agent/<id> /api/activity /api/report/<id> /work /static/* /ccd /api/ccd/* /api/growth/dryrun /health")
+    print("  POST /api/ask /api/patrol /api/settings /api/agent/add /api/agent/remove /api/onboard /api/mock/start /api/mock/stop /api/memory/prepare-anchor /api/ccd/* /api/work/settings(W5)")
+    print("  (daftar indicatif - sumber kebenaran rute = Handler.do_GET/do_POST)")
     print("  Ctrl+C to stop.")
     try:
         srv.serve_forever()
