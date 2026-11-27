@@ -1,106 +1,667 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Stratofly Workspace</title><style>
-:root{--bg:#0b0f12;--card:#12181c;--card2:#0f1418;--ink:#e8f1f0;--mut:#8aa3a0;--line:#1e2a2e;--t:#39C6C0;--g:#10B981;--r:#EF4444;--a:#E8B44C}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif}
-header{display:flex;gap:10px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--card)}
-header a{color:var(--t);text-decoration:none;font-size:12px}header h1{font-size:16px;margin:0}header .mut{color:var(--mut);font-size:11px}
-main{padding:16px 18px;max-width:1100px;margin:0 auto}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
-select,input,textarea,button{background:var(--card2);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:6px 8px;font-size:12px}
-textarea{width:100%;min-height:80px;font-family:monospace}
-button{cursor:pointer}button.primary{background:var(--t);color:#052422;border-color:var(--t);font-weight:600}
-.chip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:10px;border:1px solid;margin:2px}
-.chip.follow{color:var(--g);border-color:var(--g)}.chip.skip{color:var(--r);border-color:var(--r)}.chip.review{color:var(--a);border-color:var(--a)}
-.list{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:8px}
-.list::-webkit-scrollbar{width:8px}.list::-webkit-scrollbar-thumb{background:var(--t);border-radius:8px}
-table{width:100%;border-collapse:collapse;font-size:12px}th{position:sticky;top:0;background:var(--card);text-align:left;padding:6px 8px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line)}td{padding:6px 8px;border-bottom:1px solid var(--line)}
-.note{font-size:10px;color:var(--mut);line-height:1.5;margin-top:6px}pre{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:11px;max-height:240px;overflow:auto;white-space:pre-wrap}
-</style></head><body>
-<header><a href="/">&larr; Dashboard</a><h1>Workspace</h1><span class="mut" id="hMeta"></span></header>
-<main>
-<div class="card"><div class="row"><label>agent</label><select id="wAgent"></select><label>role</label><select id="wRole"></select><button id="wLoad">Load workspace</button></div><div class="note">Fitur hidup DI DALAM role. Dashboard tetap ringkas walau role bertambah. Pilih agent/role lalu muat workspace-nya.</div></div>
-<div id="wBody"></div>
-</main>
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stratofly · Workbench — Social Ops</title>
+<!--
+  DESIGN DOC — WORKBENCH SOCIAL OPS (sesi 2, desain dulu baru kode)
+  Prinsip anti-AI-slop yang dipegang:
+  1. Bukan landing page: tidak ada hero, tidak ada headline gradient, tidak ada kartu kaca,
+     tidak ada emoji sebagai ikon, tidak ada grid kartu seragam. Ini meja kerja operator.
+  2. Kepadatan informasional ala terminal ledger: tabel tabular-nums, label mikro uppercase
+     ber-letter-spacing, radius 3px, border 1px, bukan rounded-2xl mengambang.
+  3. Palet diturunkan dari subjek (ops pertumbuhan sosial = ledger + sinyal keputusan):
+     ink #0f1216 / surface #161b21 / overlay #1d242b / line #2a333c,
+     teks hangat #e7e3d8 vs muted dingin #8b95a1,
+     sinyal: follow chlorophyll #3ecf7a, review amber #e6a13c, skip slate #7a8794,
+     danger #e5484d, info #4aa3ff, brand acid #c8f04b.
+     Gradient hanya lintas hue halus di topbar/status strip, bukan dekorasi headline.
+  4. Region kontrol permanen (band di bawah topbar): 10+ kontrol hidup yang langsung
+     menghitung ulang keputusan — tidak disembunyikan di modal.
+  5. Semua state nyata: seeded 24 prospek believable, dry-run live, approve-queue + undo,
+     audit kronologis, settings (server W5 bila ada, fallback lokal jujur), drafter +
+     kalender, export MD/CSV nyata, saved views, search/sort/filter/bulk, empty-state +
+     muat contoh (Inc-1b), kill-switch fail-closed.
+  6. Integrasi engine (graceful): /api/state, /api/roles, /api/growth/dryrun (rekonsiliasi
+     server), /api/ask (drafter), /api/work/settings (W5). Tanpa backend = mode lokal
+     dengan badge jujur; tidak ada draft palsu.
+  7. Mirror keputusan = logika lib/growth.py + perbaikan fail-closed: metadata unknown
+     (visibility/active_days) => review, bukan lolos diam-diam. Diff vs server ditampilkan
+     jujur lewat rekonsiliasi, tidak disembunyikan.
+  8. Scrollbar, focus-visible, reduced-motion, kontras teks/kontrol dijaga; tanpa suara
+     (ini alat ops, bukan pengalaman hiburan); tanpa dependensi eksternal.
+  Gerbang verifikasi manusia sebelum commit: buka /work?agent=growthoperator&role=SocialMedia;
+  muat contoh; geser kuota/mutual/aktif => tabel berubah live; bulk approve => queue + undo;
+  export MD/CSV terunduh; kill-switch menolak approve; settings tersimpan (badge lokal/server);
+  layout 1280/900/480 tanpa overlap; console bersih.
+-->
+<style>
+:root{
+  --ink:#0f1216; --surface:#161b21; --overlay:#1d242b; --line:#2a333c; --line2:#39434e;
+  --text:#e7e3d8; --muted:#8b95a1; --dim:#5d6873;
+  --follow:#3ecf7a; --review:#e6a13c; --skip:#7a8794; --danger:#e5484d; --info:#4aa3ff; --acid:#c8f04b;
+  --mono:ui-monospace,"Cascadia Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  --sans:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --r:3px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--ink);color:var(--text);font:13px/1.45 var(--sans);display:flex;flex-direction:column;overflow:hidden}
+::selection{background:rgba(200,240,75,.25)}
+*{scrollbar-width:thin;scrollbar-color:var(--line2) var(--surface)}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:var(--surface)}
+*::-webkit-scrollbar-thumb{background:var(--line2);border:2px solid var(--surface);border-radius:6px}
+*::-webkit-scrollbar-thumb:hover{background:var(--dim)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:var(--overlay);border:1px solid var(--line);border-radius:var(--r);padding:4px 9px;color:var(--text)}
+button:hover{border-color:var(--line2);background:#232b33}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--acid);outline-offset:1px}
+input,select,textarea{background:var(--ink);border:1px solid var(--line);border-radius:var(--r);padding:4px 7px;color:var(--text)}
+input[type=range]{padding:0;accent-color:var(--acid);background:transparent;border:none}
+input[type=checkbox]{accent-color:var(--follow);width:14px;height:14px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.micro{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+svg.ic{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.7;vertical-align:-2px}
+/* topbar */
+#top{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);
+  background:linear-gradient(90deg,#161b21 0%,#1a2129 55%,#16211c 100%)}
+#brand{display:flex;align-items:center;gap:8px;font-weight:600;letter-spacing:.02em}
+#brand .mark{width:22px;height:22px;border:1px solid var(--acid);border-radius:var(--r);display:grid;place-items:center;color:var(--acid)}
+#brand small{display:block;font-weight:400;color:var(--muted);font-size:10px;letter-spacing:.14em}
+#top .sp{flex:1}
+.badge{font-family:var(--mono);font-size:10px;padding:2px 7px;border:1px solid var(--line);border-radius:20px;color:var(--muted)}
+.badge.ok{color:var(--follow);border-color:rgba(62,207,122,.4)}
+.badge.warn{color:var(--review);border-color:rgba(230,161,60,.4)}
+.badge.bad{color:var(--danger);border-color:rgba(229,72,77,.5)}
+#kill{border-color:rgba(229,72,77,.5);color:var(--danger)}
+#kill.on{background:var(--danger);color:#fff;border-color:var(--danger)}
+/* control band */
+#band{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--surface)}
+.ctl{display:flex;align-items:center;gap:6px}
+.ctl label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.ctl output{font-family:var(--mono);font-size:11px;color:var(--acid);min-width:26px;text-align:right}
+.ctl input[type=range]{width:86px}
+.ctl input[type=text]{width:110px}
+.ctl select{max-width:120px}
+.step{display:flex;align-items:center;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.step button{border:none;border-radius:0;padding:3px 7px;background:var(--overlay)}
+.step input{width:44px;border:none;border-radius:0;text-align:center;font-family:var(--mono)}
+/* body */
+#body{flex:1;display:flex;min-height:0}
+#rail{flex:0 0 168px;border-right:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;min-height:0}
+#rail .who{padding:10px;border-bottom:1px solid var(--line)}
+#rail .who b{display:block;font-size:13px}
+#rail nav{display:flex;flex-direction:column;padding:6px}
+#rail nav button{display:flex;align-items:center;gap:8px;text-align:left;border:none;background:transparent;border-radius:var(--r);padding:7px 8px;color:var(--muted);border-left:2px solid transparent}
+#rail nav button:hover{background:var(--overlay);color:var(--text)}
+#rail nav button.on{color:var(--text);background:var(--overlay);border-left-color:var(--acid)}
+#rail nav button .n{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--dim)}
+#rail .foot{margin-top:auto;padding:8px 10px;border-top:1px solid var(--line);color:var(--dim);font-size:10px}
+#main{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+.view{flex:1;min-height:0;display:none;flex-direction:column}
+.view.on{display:flex}
+.vhead{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line)}
+.vhead h2{margin:0;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.vhead .sp{flex:1}
+.vbody{flex:1;min-height:0;display:flex}
+/* growth table */
+#tblwrap{flex:1;min-width:0;overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{position:sticky;top:0;z-index:2;background:var(--overlay);border-bottom:1px solid var(--line2);text-align:left;padding:6px 8px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;user-select:none;white-space:nowrap}
+thead th:hover{color:var(--text)}
+thead th .ar{color:var(--acid)}
+tbody td{padding:5px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:#1a2128}
+tbody tr.sel{background:#1e262e;box-shadow:inset 2px 0 0 var(--acid)}
+td.num{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+.chip{display:inline-block;font-family:var(--mono);font-size:10px;padding:1px 7px;border-radius:20px;border:1px solid}
+.chip.follow{color:var(--follow);border-color:rgba(62,207,122,.45);background:rgba(62,207,122,.08)}
+.chip.review{color:var(--review);border-color:rgba(230,161,60,.45);background:rgba(230,161,60,.08)}
+.chip.skip{color:var(--skip);border-color:rgba(122,135,148,.4);background:rgba(122,135,148,.08)}
+.chip.pending{color:var(--info);border-color:rgba(74,163,255,.45)}
+.chip.approved{color:var(--follow);border-color:rgba(62,207,122,.45)}
+.chip.rejected{color:var(--danger);border-color:rgba(229,72,77,.45)}
+.reason{color:var(--muted);font-size:11px;max-width:280px;overflow:hidden;text-overflow:ellipsis}
+/* inspector */
+#insp{flex:0 0 300px;border-left:1px solid var(--line);background:var(--surface);overflow:auto;padding:12px}
+#insp h3{margin:0 0 2px;font-size:14px}
+#insp .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:10px 0;font-size:12px}
+#insp .kv span{color:var(--muted)}
+#insp .kv b{font-family:var(--mono);font-weight:500;text-align:right}
+#insp .why{border-left:2px solid var(--review);padding:6px 9px;background:var(--overlay);font-size:11px;color:var(--muted);margin:8px 0}
+#insp .acts{display:flex;gap:6px;margin-top:10px}
+/* summary strip in growth */
+#sum{flex:0 0 auto;display:flex;gap:14px;align-items:center;padding:6px 12px;border-top:1px solid var(--line);background:var(--surface);font-family:var(--mono);font-size:11px}
+#sum .f{color:var(--follow)} #sum .r{color:var(--review)} #sum .s{color:var(--skip)}
+/* empty state */
+.empty{margin:auto;text-align:center;max-width:380px;padding:30px;color:var(--muted)}
+.empty .box{width:46px;height:46px;margin:0 auto 12px;border:1px dashed var(--line2);border-radius:var(--r);display:grid;place-items:center;color:var(--dim)}
+.empty h3{color:var(--text);margin:0 0 6px;font-size:14px}
+/* lists (queue/audit/mgmt/settings) */
+.list{flex:1;overflow:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.row{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:8px 10px;display:flex;gap:10px;align-items:center}
+.row .g{flex:1;min-width:0}
+.row .g b{font-size:12px}
+.row .g small{display:block;color:var(--muted);font-size:11px}
+.row .t{font-family:var(--mono);font-size:10px;color:var(--dim)}
+textarea{width:100%;min-height:70px;resize:vertical;font-family:var(--mono);font-size:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal .d{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);min-height:74px;padding:5px}
+.cal .d header{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.cal .slot{font-size:10px;font-family:var(--mono);background:var(--overlay);border:1px solid var(--line);border-radius:2px;padding:2px 4px;margin-bottom:3px;display:flex;gap:4px;align-items:center}
+.cal .slot button{padding:0 3px;font-size:10px;line-height:1.2}
+/* status strip */
+#status{flex:0 0 auto;display:flex;gap:16px;align-items:center;padding:4px 12px;border-top:1px solid var(--line);background:linear-gradient(90deg,#161b21,#182028);font-family:var(--mono);font-size:10px;color:var(--muted)}
+#status.killed{background:linear-gradient(90deg,#2a1518,#241a1c);color:var(--danger)}
+#status .sp{flex:1}
+/* toast */
+#toast{position:fixed;right:14px;bottom:34px;z-index:50;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.tst{background:var(--overlay);border:1px solid var(--line2);border-left:3px solid var(--acid);border-radius:var(--r);padding:7px 10px;font-size:12px;display:flex;gap:10px;align-items:center;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.tst.bad{border-left-color:var(--danger)}
+.tst button{padding:2px 7px;font-size:11px}
+@media (max-width:1100px){ #insp{position:fixed;right:0;top:0;bottom:0;z-index:40;transform:translateX(100%);transition:transform .18s ease;box-shadow:-12px 0 30px rgba(0,0,0,.5)} #insp.open{transform:none} }
+@media (max-width:800px){ #rail{flex-basis:52px} #rail .who b,#rail .who .micro,#rail nav button span.lbl,#rail .foot{display:none} #rail nav button{justify-content:center} .grid2{grid-template-columns:1fr} #band{gap:6px 10px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header id="top">
+  <div id="brand"><span class="mark"><svg class="ic" viewBox="0 0 24 24"><path d="M4 17l5-6 4 3 7-9"/><path d="M4 21h16"/></svg></span>
+    <span>WORKBENCH<small>SOCIAL OPS · STRATOFLY</small></span></div>
+  <select id="agentSel" title="Agen"></select>
+  <span class="badge" id="roleBadge">role</span>
+  <span class="sp"></span>
+  <span class="badge" id="srvBadge">memeriksa…</span>
+  <button id="modeBtn" title="Mode operasi">Copilot</button>
+  <button id="kill" title="Hentikan semua aksi">Kill-switch</button>
+  <button id="expMd" title="Export laporan Markdown"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 21h16"/></svg> MD</button>
+  <button id="expCsv" title="Export CSV tampilan saat ini">CSV</button>
+</header>
 
+<div id="band">
+  <div class="ctl"><label>Kuota/hari</label><span class="step"><button id="qMinus">−</button><input id="quota" class="mono" value="12"><button id="qPlus">+</button></span></div>
+  <div class="ctl"><label>Visibilitas</label><select id="vis"><option value="any">semua</option><option value="public">public</option><option value="private">private</option></select></div>
+  <div class="ctl"><label>Rasio</label><select id="ratio"><option value="any">semua</option><option value="lt">pengikut &lt; mengikuti</option><option value="gt">pengikut &gt; mengikuti</option></select></div>
+  <div class="ctl"><label>Mutual ≥</label><input type="range" id="mutual" min="0" max="20" value="0"><output id="mutualOut">0</output></div>
+  <div class="ctl"><label>Aktif ≤ hari</label><input type="range" id="active" min="0" max="90" value="0"><output id="activeOut">off</output></div>
+  <div class="ctl"><label>Anti-bot</label><input type="checkbox" id="notbot"></div>
+  <div class="ctl"><label>Blacklist</label><input type="text" id="black" placeholder="@a, @b"></div>
+  <div class="ctl"><label>Whitelist</label><input type="text" id="white" placeholder="@c"></div>
+  <div class="ctl"><label>View</label><select id="views"><option value="">— tersimpan —</option></select><button id="saveView" title="Simpan kriteria+filter sebagai view">simpan</button></div>
+  <div class="ctl"><button id="resetCtl">reset</button><button id="loadSample">muat contoh</button></div>
+</div>
+
+<div id="body">
+  <aside id="rail">
+    <div class="who"><b id="whoName">—</b><span class="micro" id="whoRole">—</span></div>
+    <nav id="nav"></nav>
+    <div class="foot">draft-only · human-in-the-loop<br>0 aksi nyata tanpa approve</div>
+  </aside>
+  <main id="main">
+    <!-- GROWTH -->
+    <section class="view on" id="v-growth">
+      <div class="vhead"><h2>Prospect ledger</h2>
+        <input id="search" placeholder="cari handle…  ( / )" style="width:170px">
+        <select id="filter"><option value="all">semua keputusan</option><option value="follow">follow</option><option value="review">review</option><option value="skip">skip</option></select>
+        <span class="sp"></span>
+        <button id="bulkApprove">approve terpilih</button>
+        <button id="bulkReject">reject terpilih</button>
+        <button id="srvCheck" title="Rekonsiliasi dengan /api/growth/dryrun">cek server</button>
+      </div>
+      <div class="vbody">
+        <div id="tblwrap">
+          <table id="tbl">
+            <thead><tr>
+              <th style="width:26px"><input type="checkbox" id="selAll"></th>
+              <th data-k="handle">handle <span class="ar"></span></th>
+              <th data-k="followers">pengikut <span class="ar"></span></th>
+              <th data-k="following">mengikuti <span class="ar"></span></th>
+              <th data-k="mutual">mutual <span class="ar"></span></th>
+              <th data-k="active_days">aktif <span class="ar"></span></th>
+              <th data-k="visibility">visib <span class="ar"></span></th>
+              <th data-k="decision">keputusan <span class="ar"></span></th>
+              <th>alasan</th>
+            </tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div class="empty" id="empty" hidden>
+            <div class="box"><svg class="ic" viewBox="0 0 24 24" style="width:20px;height:20px"><path d="M4 6h16M4 12h10M4 18h7"/></svg></div>
+            <h3>Ledger kosong</h3>
+            <p>Tempel daftar prospek (CSV: handle,pengikut,mengikuti,mutual,aktif_hari,visibilitas) atau muat contoh untuk melihat dry-run hidup.</p>
+            <textarea id="pasteList" placeholder="@warung.digital, 1200, 340, 3, 2, public"></textarea>
+            <p style="display:flex;gap:6px;justify-content:center"><button id="parsePaste">parse daftar</button><button id="loadSample2">muat contoh</button></p>
+          </div>
+        </div>
+        <aside id="insp"></aside>
+      </div>
+      <div id="sum"></div>
+    </section>
+    <!-- MANAGEMENT -->
+    <section class="view" id="v-mgmt">
+      <div class="vhead"><h2>Management · draft-only</h2><span class="sp"></span><span class="badge warn">manusia mengeksekusi</span></div>
+      <div class="list">
+        <div class="grid2">
+          <div class="field"><label>Caption / hashtag drafter</label><textarea id="capIn" placeholder="Brief: produk apa, sudut cerita, CTA…"></textarea>
+            <p style="display:flex;gap:6px"><select id="tone"><option>hangat</option><span></span><option>teknis</option><option>jenaka</option><option>formal</option></select><button id="capGen">buat draft</button></p></div>
+          <div class="field"><label>Balasan engagement drafter</label><textarea id="repIn" placeholder="Tempel komentar/DM masuk…"></textarea>
+            <p><button id="repGen">buat draft balasan</button></p></div>
+        </div>
+        <div class="field"><label>Draft tersimpan</label><div id="drafts" style="display:flex;flex-direction:column;gap:6px"></div></div>
+        <div class="field"><label>Kalender minggu ini (klik hari untuk menambah slot)</label><div class="cal" id="cal"></div></div>
+      </div>
+    </section>
+    <!-- QUEUE -->
+    <section class="view" id="v-queue">
+      <div class="vhead"><h2>Approve queue</h2><span class="sp"></span><button id="undoLast">undo terakhir</button></div>
+      <div class="list" id="queueList"></div>
+    </section>
+    <!-- AUDIT -->
+    <section class="view" id="v-audit">
+      <div class="vhead"><h2>Audit trail</h2><span class="sp"></span><button id="expAudit">export MD</button></div>
+      <div class="list" id="auditList"></div>
+    </section>
+    <!-- SETTINGS -->
+    <section class="view" id="v-settings">
+      <div class="vhead"><h2>Settings role</h2><span class="sp"></span><span class="badge" id="setBadge">—</span><button id="setSave">simpan</button></div>
+      <div class="list">
+        <div class="grid2">
+          <div class="field"><label>Persona note (masuk system prompt saat W5)</label><textarea id="setNote" placeholder="kerjakan teliti; jangan follback di luar perintah"></textarea></div>
+          <div class="field"><label>Tone default</label><select id="setTone"><option>hangat</option><option>teknis</option><option>jenaka</option><option>formal</option></select>
+            <label style="margin-top:8px">Cadence (jam)</label><input id="setCad" class="mono" value="6">
+            <label style="margin-top:8px">Autonomous</label><select id="setAuto"><option>off</option><option>on</option></select></div>
+        </div>
+        <div class="field"><label>Catatan integritas</label>
+          <p style="color:var(--muted);font-size:12px;margin:0">Settings disimpan server bila endpoint W5 tersedia; bila tidak, fallback localStorage per-agen dan badge menyatakan jujur. Kuota di sini adalah preferensi; enforcement server-side wajib sebelum mode live (Inc-2).</p></div>
+      </div>
+    </section>
+    <!-- GENERIC -->
+    <section class="view" id="v-generic">
+      <div class="vhead"><h2>Free prompt</h2></div>
+      <div class="list">
+        <div class="field"><label>Prompt untuk agen ini</label><textarea id="genIn"></textarea><p><button id="genSend">kirim</button></p></div>
+        <div class="field"><label>Jawaban</label><div id="genOut" class="row" style="display:block"><small style="color:var(--muted)">belum ada jawaban</small></div></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer id="status">
+  <span id="stQuota">kuota 0/0</span><span id="stMode">mode copilot</span><span id="stAudit">audit 0</span>
+  <span class="sp"></span><span id="stSrv">—</span><span id="stClock" class="mono"></span>
+</footer>
+<div id="toast"></div>
 
 <script>
-var SOCIAL={"SocialMedia":1,"GrowthOperator":1};
-var MODULES={"SocialMedia":["growth","mgmt"],"GrowthOperator":["growth","mgmt"]};
-function esc(x){return String(x==null?'':x).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-function j(u){return fetch(u).then(function(r){return r.json();});}
-function getSet(a){try{return JSON.parse(localStorage.getItem('sf_set_'+a)||'{}');}catch(e){return{};}}
-var AG=[],ROLES=["Solver","Architect","Crafter","Analyst","Communicator","Sentinel","Operator","DataScientist","SocialMedia","VideoEditor","GrowthOperator"];
-function boot(){var q=new URLSearchParams(location.search);
- j('/api/state').then(function(s){AG=(s.agents||[]);
-  var a=document.getElementById('wAgent');a.innerHTML=AG.map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.id)+' ('+esc(x.role||'?')+')</option>';}).join('');
-  var r=document.getElementById('wRole');r.innerHTML=ROLES.map(function(x){return '<option>'+x+'</option>';}).join('');
-  if(q.get('agent'))a.value=q.get('agent');
-  if(q.get('role'))r.value=q.get('role');else if(a.value){var m=AG.filter(function(x){return x.id===a.value;})[0];if(m)r.value=m.role||'Operator';}
-  render();}).catch(function(e){document.getElementById('wBody').innerHTML='<div class="card note">state gagal: '+esc(e.message)+'</div>';});}
-document.getElementById('wLoad').onclick=render;
-function render(){var aid=document.getElementById('wAgent').value,role=document.getElementById('wRole').value;
- document.getElementById('hMeta').textContent=(aid||'-')+' · '+role;
- var mods=(MODULES[role]||["generic"]).concat(["settings"]);
- document.getElementById('wBody').innerHTML='<div class="card row" id="wTabs">'+mods.map(function(m,i){return '<button data-m="'+m+'" class="'+(i==0?'primary':'')+'">'+m+'</button>';}).join('')+'</div><div id="wMod"></div>';
- var show=function(m){var bs=document.getElementById('wTabs').querySelectorAll('button');for(var i=0;i<bs.length;i++)bs[i].className=(bs[i].getAttribute('data-m')===m?'primary':'');
-   if(m==='growth')growth(aid);else if(m==='mgmt')mgmt(aid,role);else if(m==='settings')settings(aid,role);else generic(aid,role);};
- var bs=document.getElementById('wTabs').querySelectorAll('button');
- for(var i=0;i<bs.length;i++)(function(b){b.onclick=function(){show(b.getAttribute('data-m'));};})(bs[i]);
- show(mods[0]);}
-function settings(aid,role){var S=getSet(aid),soc=SOCIAL[role];
- document.getElementById('wMod').innerHTML='<div class="card"><b>Settings &middot; '+esc(role)+'</b>'+
- '<div class="row"><label>persona note</label></div><textarea id="sNote" placeholder="instruksi tetap untuk agent ini">'+esc(S.note||'')+'</textarea>'+
- '<div class="row"><label>cadence (jam)</label><input id="sCad" type="number" min="1" value="'+(S.cadence||6)+'" style="width:70px">'+
- '<label>brain</label><select id="sBrain">'+["WORKHORSE","SPECIALIST","LIFELINE"].map(function(b){return '<option'+((S.brain||"WORKHORSE")===b?' selected':'')+'>'+b+'</option>';}).join('')+'</select>'+
- '<label class="note"><input type="checkbox" id="sAuto"'+(S.autonomous?' checked':'')+'> autonomous</label></div>'+
- (soc?('<div class="row"><label>quota</label><input id="sQuota" type="number" min="1" value="'+(S.quota||100)+'" style="width:70px">'+
- '<label>visibility</label><select id="sVis">'+["any","public","private"].map(function(v){return '<option'+((S.visibility||"any")===v?' selected':'')+'>'+v+'</option>';}).join('')+'</select>'+
- '<label>ratio</label><select id="sRatio">'+["any","lt","gt"].map(function(v){return '<option'+((S.ratio||"any")===v?' selected':'')+'>'+v+'</option>';}).join('')+'</select>'+
- '<label>mutual min</label><input id="sMutual" type="number" min="0" value="'+(S.mutual_min||0)+'" style="width:70px">'+
- '<label>max active days</label><input id="sActive" type="number" min="0" value="'+(S.active_days||0)+'" style="width:70px">'+
- '<label class="note"><input type="checkbox" id="sBot"'+(S.not_bot?' checked':'')+'> not-bot</label>'+
- '<label>tone</label><input id="sTone" value="'+esc(S.tone||'friendly')+'" style="width:100px"></div>'+
- '<div class="row"><label>blacklist</label><input id="sBlack" placeholder="@a,@b" style="flex:1" value="'+esc(S.blacklist||'')+'">'+
- '<label>whitelist</label><input id="sWhite" placeholder="@c" style="flex:1" value="'+esc(S.whitelist||'')+'"></div>'):'')+
- '<div class="row"><button class="primary" id="sSave">Save settings</button><span class="note" id="sMsg"></span></div>'+
- '<div class="note">Tersimpan lokal per-agent dan menjadi DEFAULT modul growth/mgmt. Persistensi server + injeksi persona = W5.</div></div>';
- document.getElementById('sSave').onclick=function(){var o={note:document.getElementById('sNote').value,cadence:parseInt(document.getElementById('sCad').value,10)||6,brain:document.getElementById('sBrain').value,autonomous:document.getElementById('sAuto').checked};
-  if(soc){o.quota=parseInt(document.getElementById('sQuota').value,10)||100;o.visibility=document.getElementById('sVis').value;o.ratio=document.getElementById('sRatio').value;o.mutual_min=parseInt(document.getElementById('sMutual').value,10)||0;o.active_days=parseInt(document.getElementById('sActive').value,10)||0;o.not_bot=document.getElementById('sBot').checked;o.tone=document.getElementById('sTone').value;o.blacklist=document.getElementById('sBlack').value;o.whitelist=document.getElementById('sWhite').value;}
-  localStorage.setItem('sf_set_'+aid,JSON.stringify(o));document.getElementById('sMsg').textContent='tersimpan ✓';};}
-function growth(aid){var S=getSet(aid);
- document.getElementById('wMod').innerHTML='<div class="card"><b>Growth &middot; Copilot (dry-run)</b>'+
- '<textarea id="gList" placeholder="handle,followers,following,mutual,active_days,visibility&#10;@alice,120,300,4,2,public"></textarea>'+
- '<div class="row"><select id="gVis"><option value="any">visibility: any</option><option value="public">public</option><option value="private">private</option></select>'+
- '<select id="gRatio"><option value="any">ratio: any</option><option value="lt">followers&lt;following</option><option value="gt">followers&gt;following</option></select>'+
- '<input id="gMutual" type="number" min="0" value="0" style="width:70px"><input id="gActive" type="number" min="0" value="0" style="width:70px">'+
- '<label class="note"><input type="checkbox" id="gBot"> not-bot</label><input id="gQuota" type="number" min="1" value="100" style="width:70px">'+
- '<button class="primary" id="gRun">Dry-run</button><button id="gExport">Export</button></div><div id="gSum"></div><div class="list" id="gOut"></div>'+
- '<div class="note">Read-only: rencana + alasan. Default diambil dari tab settings.</div></div>';
- document.getElementById('gQuota').value=S.quota||100;document.getElementById('gVis').value=S.visibility||'any';document.getElementById('gRatio').value=S.ratio||'any';document.getElementById('gMutual').value=S.mutual_min||0;document.getElementById('gActive').value=S.active_days||0;document.getElementById('gBot').checked=!!S.not_bot;
- var LAST=null;
- document.getElementById('gRun').onclick=function(){j('/api/growth/dryrun?list='+encodeURIComponent(document.getElementById('gList').value)+'&visibility='+document.getElementById('gVis').value+'&ratio='+document.getElementById('gRatio').value+'&mutual_min='+document.getElementById('gMutual').value+'&active_days='+document.getElementById('gActive').value+'&not_bot='+(document.getElementById('gBot').checked?1:0)+'&quota='+document.getElementById('gQuota').value).then(function(r){if(!r.ok)return;LAST=r;var s=r.summary;
-  document.getElementById('gSum').innerHTML='<span class="chip follow">follow: '+s.follow+'</span><span class="chip skip">skip: '+s.skip+'</span><span class="chip review">review: '+s.review+'</span><span class="note">total '+s.total+'</span>';
-  document.getElementById('gOut').innerHTML='<table><thead><tr><th>handle</th><th>decision</th><th>reason</th></tr></thead><tbody>'+r.rows.map(function(x){return '<tr><td>@'+esc(x.handle)+'</td><td><span class="chip '+x.decision+'">'+x.decision+'</span></td><td>'+esc(x.reason)+'</td></tr>';}).join('')+'</tbody></table>';});};
- document.getElementById('gExport').onclick=function(){if(!LAST)return;var md='# Growth dry-run\n\n| handle | decision | reason |\n|---|---|---|\n'+LAST.rows.map(function(x){return '| @'+x.handle+' | '+x.decision+' | '+x.reason+' |';}).join('\n')+'\n';var b=new Blob([md],{type:'text/markdown'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='growth-dryrun.md';a.click();URL.revokeObjectURL(a.href);};}
-function askAgent(aid,prompt,out){fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt,agent:aid})}).then(function(r){return r.json();}).then(function(r){document.getElementById(out).textContent=r.answer||r.response||JSON.stringify(r);}).catch(function(e){document.getElementById(out).textContent='err: '+e.message;});}
-function mgmt(aid,role){var S=getSet(aid);
- document.getElementById('wMod').innerHTML=
- '<div class="card"><b>Management &middot; Caption/Hashtag drafter</b><div class="row"><input id="mTopic" placeholder="topik/tema" style="flex:1"><input id="mTone" value="'+esc(S.tone||'friendly')+'" style="width:110px"><input id="mCount" type="number" min="1" max="5" value="3" style="width:60px"><button class="primary" id="mCap">Draft via agent</button></div><pre id="mCapOut">draft muncul di sini…</pre><button id="mCapCopy">Copy</button></div>'+
- '<div class="card"><b>Management &middot; Engagement reply drafter</b><textarea id="mComment" placeholder="paste komentar/DM yang ingin dibalas"></textarea><div class="row"><button class="primary" id="mRep">Draft reply</button></div><pre id="mRepOut">draft reply muncul di sini…</pre><button id="mRepCopy">Copy</button><div class="note">Human-approved: agent hanya MEN-DRAFT; Anda yang copy & posting manual (atau via connector kelak).</div></div>'+
- '<div class="card"><b>Management &middot; Content calendar (lokal)</b><div class="row"><input id="cDate" type="date"><input id="cTime" type="time"><input id="cNote" placeholder="catatan slot" style="flex:1"><button id="cAdd">Add slot</button><button id="cExp">Export</button></div><div class="list" id="cList"></div></div>';
- function copy(id,src){document.getElementById(id).onclick=function(){var t=document.getElementById(src).textContent;if(navigator.clipboard)navigator.clipboard.writeText(t);};}
- copy('mCapCopy','mCapOut');copy('mRepCopy','mRepOut');
- document.getElementById('mCap').onclick=function(){var n=parseInt(document.getElementById('mCount').value,10)||3;askAgent(aid,'Buat '+n+' caption Instagram singkat + daftar hashtag untuk topik: '+document.getElementById('mTopic').value+' dengan tone '+document.getElementById('mTone').value+'. Format nomor.','mCapOut');};
- document.getElementById('mRep').onclick=function(){askAgent(aid,'Tulis satu balasan singkat, ramah, profesional untuk komentar/DM berikut (jangan menambahkan klaim): '+document.getElementById('mComment').value,'mRepOut');};
- var KEY='sf_cal_'+aid;function load(){try{return JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){return[];}}
- function draw(){var L=load();document.getElementById('cList').innerHTML='<table><thead><tr><th>date</th><th>time</th><th>note</th><th></th></tr></thead><tbody>'+L.map(function(x,i){return '<tr><td>'+esc(x.d)+'</td><td>'+esc(x.t)+'</td><td>'+esc(x.n)+'</td><td><button data-i="'+i+'">x</button></td></tr>';}).join('')+'</tbody></table>';
-  var bs=document.getElementById('cList').querySelectorAll('button');for(var i=0;i<bs.length;i++)(function(b){b.onclick=function(){var L=load();L.splice(parseInt(b.getAttribute('data-i'),10),1);localStorage.setItem(KEY,JSON.stringify(L));draw();};})(bs[i]);}
- document.getElementById('cAdd').onclick=function(){var L=load();L.push({d:document.getElementById('cDate').value,t:document.getElementById('cTime').value,n:document.getElementById('cNote').value});L.sort(function(a,b){return (a.d+a.t).localeCompare(b.d+b.t);});localStorage.setItem(KEY,JSON.stringify(L));draw();};
- document.getElementById('cExp').onclick=function(){var L=load();var md='# Content calendar '+aid+'\n\n| date | time | note |\n|---|---|---|\n'+L.map(function(x){return '| '+x.d+' | '+x.t+' | '+x.n+' |';}).join('\n')+'\n';var b=new Blob([md],{type:'text/markdown'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='calendar-'+aid+'.md';a.click();URL.revokeObjectURL(a.href);};
- draw();}
-function generic(aid,role){var S=getSet(aid);
- document.getElementById('wMod').innerHTML='<div class="card"><b>'+esc(role)+' &middot; workspace</b><div class="note">Generic: persona + free prompt. Persona note dari tab settings ikut disertakan.</div><div class="row"><textarea id="aPrompt" placeholder="prompt untuk '+esc(aid)+'..."></textarea></div><div class="row"><button class="primary" id="aSend">Send</button></div><pre id="aOut">Response appears here...</pre></div>';
- document.getElementById('aSend').onclick=function(){var p=document.getElementById('aPrompt').value;if(S.note)p='Catatan tetap: '+S.note+'\n\n'+p;askAgent(aid,p,'aOut');};}
-boot();
-</script></body></html>
+"use strict";
+/* ============ state ============ */
+var $ = function(id){ return document.getElementById(id); };
+var QS = new URLSearchParams(location.search);
+var S = {
+  agent: QS.get("agent") || "growthoperator",
+  role: QS.get("role") || "SocialMedia",
+  agents: [{id:"growthoperator",role:"SocialMedia"},{id:"herald",role:"Communicator"},{id:"diplomat",role:"Communicator"}],
+  rows: [], computed: [],
+  crit: {quota:12, vis:"any", ratio:"any", mutual:0, active:0, notbot:false, black:"", white:""},
+  mode:"copilot", killed:false,
+  search:"", filter:"all", sort:{k:"followers",d:-1},
+  sel:{}, inspect:null,
+  queue:[], audit:[], undoStack:[],
+  drafts:[], cal:{}, views:[],
+  srv:null, view:"growth"
+};
+var SEED = [
+ ["warung.digital",1240,380,4,2,"public"],["batik.trusmi",8600,210,9,1,"public"],
+ ["kopi.senja.id",430,980,2,5,"public"],["gadget.lokal",15200,120,1,0,"public"],
+ ["ibu.rempah",310,420,6,3,"public"],["studio.kayu",2200,640,0,12,"public"],
+ ["jajan.bandung",980,1500,3,1,"public"],["tenun.ikat",5400,90,2,40,"public"],
+ ["kelas.desain",12000,300,0,4,"public"],["sepatu.tangan",760,880,5,2,"public"],
+ ["arsip.foto",2400,150,1,9,"private"],["dapur.umami",640,720,8,1,"public"],
+ ["print.harian",180,2600,0,60,"public"],["kebun.kota",3300,410,3,3,"public"],
+ ["butik.linen",1100,950,2,7,"private"],["roastery.id",7800,240,6,1,"public"],
+ ["craft.logam",520,610,1,15,"public"],["toko.benih",940,1100,4,2,"public"],
+ ["lensa.jalanan",15600,80,0,1,"public"],["anyaman.rotan",410,500,7,4,"public"],
+ ["sinar.cetak",260,390,0,80,"public"],["pantai.timur",6100,700,2,6,"public"],
+ ["gerobak.malam",880,1240,3,2,"public"],["kertas.daur",1900,480,5,3,"public"]
+];
+function seedRows(){ S.rows = SEED.map(function(r,i){ return {id:"p"+i, handle:r[0], followers:r[1], following:r[2], mutual:r[3], active_days:r[4], visibility:r[5]}; }); }
+function lsGet(k,d){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+/* ============ decision mirror (growth.py + fail-closed unknown) ============ */
+function decide(){
+  var c=S.crit, black=c.black.split(",").map(function(x){return x.trim().replace(/^@/,"").toLowerCase();}).filter(Boolean);
+  var white=c.white.split(",").map(function(x){return x.trim().replace(/^@/,"").toLowerCase();}).filter(Boolean);
+  var n=0, out=[];
+  S.rows.forEach(function(r){
+    var h=r.handle.replace(/^@/,"").toLowerCase(), dec="follow", why=[];
+    var meta = r.followers!=null && r.following!=null;
+    if(black.indexOf(h)>=0){ dec="skip"; why=["blacklist"]; }
+    else if(white.indexOf(h)>=0){ dec="follow"; why=["whitelist"]; }
+    else if(!meta){ dec="review"; why=["metadata unknown; manual check"]; }
+    else if(c.vis!=="any" && (!r.visibility || r.visibility!==c.vis)){ dec = r.visibility? "skip":"review"; why=[ r.visibility? "visibility="+r.visibility : "visibility unknown; manual check"]; }
+    else if(c.ratio==="lt" && !(r.followers<r.following)){ dec="skip"; why=["ratio not followers<following"]; }
+    else if(c.ratio==="gt" && !(r.followers>r.following)){ dec="skip"; why=["ratio not followers>following"]; }
+    else if(c.mutual>0 && (r.mutual||0)<c.mutual){ dec="skip"; why=["mutual<min"]; }
+    else if(c.active>0 && (r.active_days==null || r.active_days>c.active)){ dec = r.active_days==null? "review":"skip"; why=[ r.active_days==null? "activity unknown; manual check":"stale activity"]; }
+    else if(c.notbot && (r.followers===0 || (r.following>5000 && r.followers<50))){ dec="skip"; why=["bot-suspect"]; }
+    if(dec==="follow"){ if(n>=c.quota){ dec="review"; why=["quota reached"]; } else { n++; if(!why.length) why=["passes criteria"]; } }
+    out.push(Object.assign({}, r, {decision:dec, reason:why.join("; ")}));
+  });
+  S.computed=out; return out;
+}
+/* ============ render ============ */
+function fmt(n){ return n==null? "—" : Number(n).toLocaleString("id-ID"); }
+function visible(){
+  var q=S.search.toLowerCase();
+  var rows=S.computed.filter(function(r){
+    if(S.filter!=="all" && r.decision!==S.filter) return false;
+    if(q && r.handle.toLowerCase().indexOf(q)<0) return false;
+    return true;
+  });
+  var k=S.sort.k,d=S.sort.d;
+  rows.sort(function(a,b){ var x=a[k],y=b[k]; if(x==null)x=-1; if(y==null)y=-1;
+    if(typeof x==="string") return x.localeCompare(y)*d; return (x-y)*d; });
+  return rows;
+}
+function renderTable(){
+  var rows=visible(), tb=$("tbody");
+  $("empty").hidden = S.rows.length>0;
+  $("tbl").style.display = S.rows.length? "":"none";
+  tb.innerHTML = rows.map(function(r){
+    return '<tr data-id="'+r.id+'" class="'+(S.sel[r.id]?"sel":"")+'">'
+      + '<td><input type="checkbox" data-sel="'+r.id+'" '+(S.sel[r.id]?"checked":"")+'></td>'
+      + '<td class="mono">@'+r.handle+'</td>'
+      + '<td class="num">'+fmt(r.followers)+'</td><td class="num">'+fmt(r.following)+'</td>'
+      + '<td class="num">'+fmt(r.mutual)+'</td><td class="num">'+(r.active_days==null?"—":r.active_days+"h")+'</td>'
+      + '<td>'+(r.visibility||"—")+'</td>'
+      + '<td><span class="chip '+r.decision+'">'+r.decision+'</span></td>'
+      + '<td class="reason" title="'+r.reason.replace(/"/g,"&quot;")+'">'+r.reason+'</td></tr>';
+  }).join("");
+  var s={follow:0,review:0,skip:0}; S.computed.forEach(function(r){s[r.decision]++;});
+  $("sum").innerHTML = '<span>total '+S.computed.length+'</span><span class="f">follow '+s.follow+'</span><span class="r">review '+s.review+'</span><span class="s">skip '+s.skip+'</span><span style="color:var(--dim)">kuota terpakai '+Math.min(s.follow,S.crit.quota)+'/'+S.crit.quota+'</span>';
+  $("stQuota").textContent = "kuota "+Math.min(s.follow,S.crit.quota)+"/"+S.crit.quota;
+  document.querySelectorAll("thead th[data-k]").forEach(function(th){
+    th.querySelector(".ar").textContent = th.dataset.k===S.sort.k ? (S.sort.d>0?"▲":"▼") : "";
+  });
+}
+function renderInsp(){
+  var el=$("insp"), r=null;
+  S.computed.forEach(function(x){ if(x.id===S.inspect) r=x; });
+  if(!r){ el.innerHTML = '<p class="micro">inspector</p><p style="color:var(--muted);font-size:12px">Klik baris ledger untuk melihat rincian keputusan, sumber data, dan aksi per-prospek. Keputusan dihitung live dari band kontrol di atas.</p>'; return; }
+  el.innerHTML = '<p class="micro">prospek</p><h3 class="mono">@'+r.handle+'</h3>'
+    + '<span class="chip '+r.decision+'">'+r.decision+'</span>'
+    + '<div class="kv"><span>pengikut</span><b>'+fmt(r.followers)+'</b><span>mengikuti</span><b>'+fmt(r.following)+'</b><span>mutual</span><b>'+fmt(r.mutual)+'</b><span>aktif</span><b>'+(r.active_days==null?"—":r.active_days+" hari")+'</b><span>visibilitas</span><b>'+(r.visibility||"—")+'</b></div>'
+    + '<div class="why">'+r.reason+'</div>'
+    + '<p class="micro">sumber</p><p style="color:var(--muted);font-size:11px">import-list / contoh_seed · bukan scraping · handle publik saja</p>'
+    + '<div class="acts"><button data-act="approve" data-id="'+r.id+'">approve follow</button><button data-act="reject" data-id="'+r.id+'">reject</button></div>';
+  el.classList.add("open");
+}
+function renderQueue(){
+  var el=$("queueList");
+  if(!S.queue.length){ el.innerHTML='<div class="empty"><h3>Antrean kosong</h3><p>Approve dari ledger akan muncul di sini menunggu keputusan manusia. Tidak ada aksi nyata yang berjalan tanpa approve.</p></div>'; return; }
+  el.innerHTML = S.queue.slice().reverse().map(function(q){
+    return '<div class="row"><div class="g"><b class="mono">@'+q.handle+'</b><small>'+q.action+' · '+q.reason+'</small></div>'
+      + '<span class="chip '+q.status+'">'+q.status+'</span><span class="t">'+q.ts+'</span>'
+      + (q.status==="pending"? '<button data-q="ok" data-id="'+q.id+'">setujui</button><button data-q="no" data-id="'+q.id+'">tolak</button>':'')
+      + '</div>';
+  }).join("");
+}
+function renderAudit(){
+  var el=$("auditList");
+  el.innerHTML = S.audit.slice().reverse().map(function(a){
+    return '<div class="row"><div class="g"><b>'+a.action+'</b><small>'+a.target+' · '+a.reason+'</small></div><span class="chip '+a.status+'">'+a.status+'</span><span class="t">'+a.ts+'</span></div>';
+  }).join("") || '<div class="empty"><h3>Belum ada jejak</h3><p>Setiap keputusan copilot dan manusia tercatat di sini dengan alasan dan sumber.</p></div>';
+  $("stAudit").textContent = "audit "+S.audit.length;
+}
+function renderDrafts(){
+  $("drafts").innerHTML = S.drafts.map(function(d,i){
+    return '<div class="row"><div class="g"><b>'+d.kind+'</b><small style="white-space:pre-wrap">'+d.text.replace(/</g,"&lt;")+'</small></div><span class="t">'+d.src+'</span><button data-d="copy" data-i="'+i+'">copy</button><button data-d="cal" data-i="'+i+'">→ kalender</button><button data-d="del" data-i="'+i+'">hapus</button></div>';
+  }).join("") || '<p style="color:var(--muted);font-size:12px">Belum ada draft. Buat dari brief di atas; tanpa key NVIDIA drafter memakai komposer lokal dan menandainya jujur.</p>';
+}
+function renderCal(){
+  var days=["Sen","Sel","Rab","Kam","Jum","Sab","Min"];
+  $("cal").innerHTML = days.map(function(d,i){
+    var slots=(S.cal[i]||[]).map(function(s,j){ return '<div class="slot"><span style="flex:1">'+s.replace(/</g,"&lt;")+'</span><button data-cal="rm" data-d="'+i+'" data-j="'+j+'">×</button></div>'; }).join("");
+    return '<div class="d" data-cal="add" data-d="'+i+'"><header>'+d+'</header>'+slots+'</div>';
+  }).join("");
+}
+function renderStatus(){
+  $("stMode").textContent = "mode "+S.mode+(S.killed?" · KILLED":"");
+  $("status").classList.toggle("killed", S.killed);
+  $("kill").classList.toggle("on", S.killed);
+  $("kill").textContent = S.killed? "KILLED · resume":"Kill-switch";
+  $("modeBtn").textContent = S.mode==="copilot"? "Copilot":"Assisted (opt-in)";
+  $("modeBtn").style.borderColor = S.mode==="copilot"? "":"rgba(230,161,60,.6)";
+  $("stSrv").textContent = S.srv? "server hidup · rekonsiliasi tersedia":"mode lokal · engine tidak terjangkau";
+  $("srvBadge").textContent = S.srv? "engine online":"mode lokal";
+  $("srvBadge").className = "badge "+(S.srv?"ok":"warn");
+}
+function renderAll(){ decide(); renderTable(); renderInsp(); renderQueue(); renderAudit(); renderDrafts(); renderCal(); renderStatus(); }
+/* ============ audit / queue / undo ============ */
+function now(){ return new Date().toLocaleTimeString("id-ID",{hour12:false}); }
+function log(action,target,reason,status){ S.audit.push({ts:now(),action:action,target:target,reason:reason,status:status||"info"}); renderAudit(); }
+function toast(msg,undoFn,bad){
+  var t=document.createElement("div"); t.className="tst"+(bad?" bad":"");
+  t.innerHTML='<span>'+msg+'</span>';
+  if(undoFn){ var b=document.createElement("button"); b.textContent="undo"; b.onclick=function(){ undoFn(); t.remove(); }; t.appendChild(b); }
+  $("toast").appendChild(t); setTimeout(function(){ t.remove(); },6000);
+}
+function enqueue(ids,action){
+  if(S.killed){ toast("Kill-switch aktif: aksi ditolak (fail-closed).",null,true); log(action,"bulk","kill-switch active","rejected"); return; }
+  var added=[];
+  ids.forEach(function(id){
+    var r=null; S.computed.forEach(function(x){ if(x.id===id) r=x; });
+    if(!r) return;
+    var q={id:"q"+Date.now()+Math.random().toString(36).slice(2,6),handle:r.handle,action:action,reason:r.reason,status:"pending",ts:now()};
+    S.queue.push(q); added.push(q);
+    log("queue."+action,"@"+r.handle,r.reason,"pending");
+  });
+  if(added.length){ S.undoStack.push(added); toast(added.length+" prospek masuk antrean "+action, function(){ added.forEach(function(q){ S.queue=S.queue.filter(function(x){return x!==q;}); }); log("undo","bulk","rollback enqueue","info"); renderQueue(); }); }
+  renderQueue(); switchView("queue");
+}
+/* ============ views / nav ============ */
+var TABS=[["growth","Ledger"],["mgmt","Management"],["queue","Approve"],["audit","Audit"],["settings","Settings"],["generic","Prompt"]];
+function tabsForRole(){
+  var social = /SocialMedia|GrowthOperator/i.test(S.role);
+  return TABS.filter(function(t){ if(t[0]==="generic") return !social; if(t[0]==="mgmt"||t[0]==="growth") return social; return true; });
+}
+function renderNav(){
+  $("nav").innerHTML = tabsForRole().map(function(t){
+    var n = t[0]==="queue"? S.queue.filter(function(q){return q.status==="pending";}).length : (t[0]==="audit"? S.audit.length : "");
+    return '<button data-v="'+t[0]+'" class="'+(S.view===t[0]?"on":"")+'"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span class="lbl">'+t[1]+'</span><span class="n">'+n+'</span></button>';
+  }).join("");
+}
+function switchView(v){
+  S.view=v;
+  document.querySelectorAll(".view").forEach(function(el){ el.classList.toggle("on", el.id==="v-"+v); });
+  renderNav();
+}
+/* ============ engine integration (graceful) ============ */
+function jget(u){ return fetch(u).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }); }
+function probeServer(){
+  jget("/api/state").then(function(st){
+    S.srv=true;
+    if(st && st.agents){ st.agents.forEach(function(a){ if(!S.agents.some(function(x){return x.id===a.id;})) S.agents.push({id:a.id,role:a.role||"Operator"}); }); }
+    var me=S.agents.filter(function(a){return a.id===S.agent;})[0];
+    if(me) S.role=me.role;
+    boot();
+  }).catch(function(){ S.srv=false; boot(); });
+}
+function serverCheck(){
+  if(!S.srv){ toast("Engine tidak terjangkau; rekonsiliasi server dilewati (mode lokal).",null,true); return; }
+  var c=S.crit;
+  var u="/api/growth/dryrun?list="+encodeURIComponent(S.rows.map(function(r){return [r.handle,r.followers,r.following,r.mutual,r.active_days,r.visibility].join(",");}).join("\n"))
+    +"&quota="+c.quota+"&visibility="+c.vis+"&ratio="+c.ratio+"&mutual_min="+c.mutual+"&active_days="+c.active+"&not_bot="+(c.notbot?1:0)
+    +"&blacklist="+encodeURIComponent(c.black)+"&whitelist="+encodeURIComponent(c.white);
+  jget(u).then(function(res){
+    var diff=0;
+    (res.rows||[]).forEach(function(sr){
+      S.computed.forEach(function(lr){ if(lr.handle===sr.handle && lr.decision!==sr.decision) diff++; });
+    });
+    log("server.reconcile","dryrun","server summary follow="+(res.summary?res.summary.follow:"?")+" · diff fail-closed="+diff, diff? "review":"approved");
+    toast(diff? "Server cocok kecuali "+diff+" baris: mirror fail-closed mengirim metadata-unknown ke review (perbaikan sadar atas growth.py v1).":"Server dan mirror cocok penuh.", null, !!diff);
+  }).catch(function(e){ toast("Rekonsiliasi gagal: "+e.message,null,true); });
+}
+function askEngine(prompt,cb){
+  if(!S.srv){ cb(null); return; }
+  fetch("/api/ask",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:prompt,agent_id:S.agent})})
+    .then(function(r){return r.json();}).then(function(j){ cb(j.answer||null); }).catch(function(){ cb(null); });
+}
+/* ============ drafts / calendar ============ */
+function localDraft(kind,brief,tone){
+  var t={hangat:["Halo sobat!","cerita di balik layar","yuk ngobrol di kolom komentar"],teknis:["Spesifikasi & proses","data uji internal","detail teknis di utas berikut"],jenaka:["Plot twist:","kami tidak sengaja bikin ini","komentar terbaik dapat hadiah"],formal:["Dengan hormat,","ringkasan proses produksi","tautan dokumentasi terlampir"]}[tone]||["Halo!","cerita proses","tautan di bio"];
+  return t[0]+" "+(brief||"produk lokal pilihan")+". "+t[1]+". "+t[2]+". #stratofly #produklokal";
+}
+function genDraft(kind,inputId){
+  var brief=$(inputId).value.trim(), tone=$("tone").value;
+  if(!brief){ toast("Isi brief dulu.",null,true); return; }
+  askEngine("Buat draft "+kind+" bahasa Indonesia, tone "+tone+", untuk: "+brief, function(ans){
+    var text = ans || localDraft(kind,brief,tone);
+    S.drafts.push({kind:kind+(ans?" (engine)":" (lokal)"),text:text,src:ans?"nvidia":"komposer lokal",ts:now()});
+    log("draft."+kind,"@"+S.agent,ans?"engine answer":"local composer (no key)", "approved");
+    renderDrafts(); toast("Draft masuk daftar.");
+  });
+}
+/* ============ export ============ */
+function download(name,text,mime){
+  var b=new Blob([text],{type:mime||"text/plain"}), u=URL.createObjectURL(b), a=document.createElement("a");
+  a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(u);},500);
+}
+function exportMd(){
+  var s={follow:0,review:0,skip:0}; S.computed.forEach(function(r){s[r.decision]++;});
+  var md="# Workbench report — @"+S.agent+" ("+S.role+")\n\n"
+    +"- waktu: "+new Date().toISOString()+"\n- mode: "+S.mode+(S.killed?" (KILLED)":"")+"\n- kriteria: "+JSON.stringify(S.crit)+"\n"
+    +"- ringkasan: follow "+s.follow+" / review "+s.review+" / skip "+s.skip+"\n\n| handle | pengikut | mengikuti | mutual | aktif | visib | keputusan | alasan |\n|---|---|---|---|---|---|---|---|\n"
+    + visible().map(function(r){ return "| @"+r.handle+" | "+r.followers+" | "+r.following+" | "+r.mutual+" | "+r.active_days+" | "+r.visibility+" | "+r.decision+" | "+r.reason+" |"; }).join("\n")
+    +"\n\n## Audit\n"+S.audit.map(function(a){return "- "+a.ts+" "+a.action+" "+a.target+" ["+a.status+"] "+a.reason;}).join("\n")+"\n";
+  download("workbench-"+S.agent+".md",md,"text/markdown"); log("export.md","@"+S.agent,visible().length+" baris","approved");
+}
+function exportCsv(){
+  var csv="handle,followers,following,mutual,active_days,visibility,decision,reason\n"
+    + visible().map(function(r){ return [r.handle,r.followers,r.following,r.mutual,r.active_days,r.visibility,r.decision,'"'+r.reason.replace(/"/g,'""')+'"'].join(","); }).join("\n");
+  download("workbench-"+S.agent+".csv",csv,"text/csv"); log("export.csv","@"+S.agent,visible().length+" baris","approved");
+}
+/* ============ settings ============ */
+function loadSettings(){
+  var s=lsGet("sf_set_"+S.agent,{});
+  $("setNote").value=s.note||""; $("setTone").value=s.tone||"hangat"; $("setCad").value=s.cadence||6; $("setAuto").value=s.autonomous||"off";
+  $("setBadge").textContent = s._srv? "server (W5)":"localStorage lokal";
+  $("setBadge").className = "badge "+(s._srv?"ok":"warn");
+}
+function saveSettings(){
+  var s={note:$("setNote").value,tone:$("setTone").value,cadence:$("setCad").value,autonomous:$("setAuto").value};
+  var done=function(srv){ s._srv=srv; lsSet("sf_set_"+S.agent,s); loadSettings(); log("settings.save","@"+S.agent,srv?"server W5":"localStorage fallback","approved"); toast(srv? "Settings tersimpan server.":"Endpoint W5 belum ada; tersimpan lokal (jujur)."); };
+  if(S.srv){ fetch("/api/work/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({agent:S.agent,settings:s})}).then(function(r){ done(r.ok); }).catch(function(){ done(false); }); }
+  else done(false);
+}
+/* ============ boot / wiring ============ */
+function boot(){
+  $("agentSel").innerHTML = S.agents.map(function(a){ return '<option value="'+a.id+'" '+(a.id===S.agent?"selected":"")+'>'+a.id+'</option>'; }).join("");
+  $("roleBadge").textContent = S.role;
+  $("whoName").textContent = "@"+S.agent; $("whoRole").textContent = S.role;
+  if(!S.rows.length) seedRows();
+  S.views = lsGet("sf_views_"+S.agent,[]);
+  $("views").innerHTML = '<option value="">— tersimpan —</option>'+S.views.map(function(v,i){return '<option value="'+i+'">'+v.name+'</option>';}).join("");
+  S.cal = lsGet("sf_cal_"+S.agent,{});
+  loadSettings(); renderNav(); renderAll();
+  switchView(tabsForRole().some(function(t){return t[0]===S.view;})? S.view : tabsForRole()[0][0]);
+}
+function bind(){
+  $("agentSel").onchange=function(){ S.agent=this.value; var me=S.agents.filter(function(a){return a.id===S.agent;})[0]; S.role=me?me.role:"Operator"; S.sel={}; S.inspect=null; boot(); };
+  $("qMinus").onclick=function(){ $("quota").value=Math.max(0,(+$("#quota"===0?0:$("quota").value)||0)-1); syncCrit(); };
+  $("qPlus").onclick=function(){ $("quota").value=(+$("quota").value||0)+1; syncCrit(); };
+  $("quota").oninput=syncCrit; $("vis").onchange=syncCrit; $("ratio").onchange=syncCrit;
+  $("mutual").oninput=syncCrit; $("active").oninput=syncCrit; $("notbot").onchange=syncCrit;
+  $("black").oninput=syncCrit; $("white").oninput=syncCrit;
+  function syncCrit(){
+    S.crit={quota:Math.max(0,+$("quota").value||0), vis:$("vis").value, ratio:$("ratio").value,
+      mutual:+$("mutual").value, active:+$("active").value, notbot:$("notbot").checked,
+      black:$("black").value, white:$("white").value};
+    $("mutualOut").textContent=S.crit.mutual; $("activeOut").textContent=S.crit.active? S.crit.active:"off";
+    decide(); renderTable(); renderInsp(); renderStatus();
+  }
+  $("resetCtl").onclick=function(){ $("quota").value=12; $("vis").value="any"; $("ratio").value="any"; $("mutual").value=0; $("active").value=0; $("notbot").checked=false; $("black").value=""; $("white").value=""; syncCrit(); log("criteria.reset","@"+S.agent,"kembali default","info"); };
+  function loadSample(){ seedRows(); S.sel={}; log("list.sample","@"+S.agent,SEED.length+" baris contoh","approved"); renderAll(); toast("Contoh dimuat: "+SEED.length+" prospek."); }
+  $("loadSample").onclick=loadSample; $("loadSample2").onclick=loadSample;
+  $("parsePaste").onclick=function(){
+    var rows=[]; $("pasteList").value.split("\n").forEach(function(line){
+      var p=line.split(",").map(function(x){return x.trim();}); if(!p[0]) return;
+      rows.push({id:"u"+rows.length+Date.now(),handle:p[0].replace(/^@/,""),followers:parseFloat(p[1])||null,following:parseFloat(p[2])||null,mutual:parseFloat(p[3])||0,active_days:p[4]===""?null:parseFloat(p[4]),visibility:(p[5]||"").toLowerCase()});
+    });
+    if(!rows.length){ toast("Tidak ada baris terparse.",null,true); return; }
+    S.rows=rows; S.sel={}; log("list.import","@"+S.agent,rows.length+" baris tempel","approved"); renderAll();
+  };
+  $("search").oninput=function(){ S.search=this.value; renderTable(); };
+  $("filter").onchange=function(){ S.filter=this.value; renderTable(); };
+  document.querySelectorAll("thead th[data-k]").forEach(function(th){ th.onclick=function(){ var k=th.dataset.k; S.sort = S.sort.k===k? {k:k,d:-S.sort.d} : {k:k,d:-1}; renderTable(); }; });
+  $("selAll").onchange=function(){ var on=this.checked; visible().forEach(function(r){ S.sel[r.id]=on; }); renderTable(); };
+  $("tbody").onclick=function(e){
+    var cb=e.target.closest("[data-sel]");
+    if(cb){ S.sel[cb.dataset.sel]=cb.checked; renderTable(); e.stopPropagation(); return; }
+    var tr=e.target.closest("tr[data-id]"); if(!tr) return;
+    S.inspect=tr.dataset.id; renderInsp(); renderTable();
+  };
+  $("insp").onclick=function(e){
+    var b=e.target.closest("[data-act]"); if(!b) return;
+    if(b.dataset.act==="approve") enqueue([b.dataset.id],"follow");
+    else { S.queue.push({id:"q"+Date.now(),handle:(S.computed.filter(function(x){return x.id===b.dataset.id;})[0]||{}).handle||"?",action:"reject",reason:"manual reject",status:"rejected",ts:now()}); log("reject","@"+b.dataset.id,"manual","rejected"); renderQueue(); }
+  };
+  $("bulkApprove").onclick=function(){ var ids=Object.keys(S.sel).filter(function(k){return S.sel[k];}); if(!ids.length){ toast("Pilih baris dulu.",null,true); return; } enqueue(ids,"follow"); };
+  $("bulkReject").onclick=function(){ var ids=Object.keys(S.sel).filter(function(k){return S.sel[k];}); if(!ids.length){ toast("Pilih baris dulu.",null,true); return; }
+    var added=ids.map(function(id){ var r=S.computed.filter(function(x){return x.id===id;})[0]; var q={id:"q"+Date.now()+id,handle:r?r.handle:id,action:"reject",reason:"bulk reject",status:"rejected",ts:now()}; S.queue.push(q); return q; });
+    S.undoStack.push(added); log("reject.bulk",ids.length+" prospek","bulk","rejected"); renderQueue(); switchView("queue");
+    toast(ids.length+" ditolak", function(){ added.forEach(function(q){ S.queue=S.queue.filter(function(x){return x!==q;}); }); renderQueue(); });
+  };
+  $("undoLast").onclick=function(){ var last=S.undoStack.pop(); if(!last){ toast("Tidak ada yang bisa di-undo.",null,true); return; } S.queue=S.queue.filter(function(q){return last.indexOf(q)<0;}); log("undo","queue","rollback "+last.length,"info"); renderQueue(); };
+  $("queueList").onclick=function(e){ var b=e.target.closest("[data-q]"); if(!b) return;
+    S.queue.forEach(function(q){ if(q.id===b.dataset.id){ q.status = b.dataset.q==="ok"? "approved":"rejected"; log("queue."+q.status,"@"+q.handle,q.reason,q.status); } });
+    renderQueue(); renderNav();
+    if(b.dataset.q==="ok") toast("Disetujui. Eksekusi tetap manual oleh manusia (draft-only).");
+  };
+  $("srvCheck").onclick=serverCheck;
+  $("modeBtn").onclick=function(){ S.mode = S.mode==="copilot"? "assisted":"copilot";
+    if(S.mode==="assisted") toast("Assisted-Auto = opt-in sadar-risiko: ToS IG melarang otomasi engagement; cap+cooldown wajib sebelum live.",null,true);
+    log("mode.change","@"+S.agent,S.mode,"info"); renderStatus(); };
+  $("kill").onclick=function(){ S.killed=!S.killed; log("killswitch","@"+S.agent,S.killed?"engaged":"released",S.killed?"rejected":"info"); renderStatus(); };
+  $("expMd").onclick=exportMd; $("expCsv").onclick=exportCsv;
+  $("expAudit").onclick=function(){ download("audit-"+S.agent+".md","# Audit @"+S.agent+"\n\n"+S.audit.map(function(a){return "- "+a.ts+" "+a.action+" "+a.target+" ["+a.status+"] "+a.reason;}).join("\n"),"text/markdown"); };
+  $("saveView").onclick=function(){ var name=prompt("Nama view:"); if(!name) return; S.views.push({name:name,crit:S.crit,filter:S.filter,search:S.search}); lsSet("sf_views_"+S.agent,S.views); boot(); toast("View tersimpan: "+name); };
+  $("views").onchange=function(){ var v=S.views[+this.value]; if(!v) return; S.crit=v.crit; S.filter=v.filter; S.search=v.search;
+    $("quota").value=v.crit.quota; $("vis").value=v.crit.vis; $("ratio").value=v.crit.ratio; $("mutual").value=v.crit.mutual; $("active").value=v.crit.active; $("notbot").checked=v.crit.notbot; $("black").value=v.crit.black; $("white").value=v.crit.white; $("filter").value=v.filter; $("search").value=v.search;
+    $("mutualOut").textContent=v.crit.mutual; $("activeOut").textContent=v.crit.active||"off"; renderAll(); };
+  $("nav").onclick=function(e){ var b=e.target.closest("[data-v]"); if(b) switchView(b.dataset.v); };
+  $("capGen").onclick=function(){ genDraft("caption","capIn"); };
+  $("repGen").onclick=function(){ genDraft("balasan","repIn"); };
+  $("drafts").onclick=function(e){ var b=e.target.closest("[data-d]"); if(!b) return; var d=S.drafts[+b.dataset.i];
+    if(b.dataset.d==="copy"){ navigator.clipboard&&navigator.clipboard.writeText(d.text); toast("Draft disalin."); }
+    if(b.dataset.d==="del"){ S.drafts.splice(+b.dataset.i,1); renderDrafts(); }
+    if(b.dataset.d==="cal"){ var day=new Date().getDay(); day=(day+6)%7; (S.cal[day]=S.cal[day]||[]).push(d.kind+": "+d.text.slice(0,28)); lsSet("sf_cal_"+S.agent,S.cal); renderCal(); toast("Masuk kalender hari ini."); }
+  };
+  $("cal").onclick=function(e){
+    var rm=e.target.closest('[data-cal="rm"]');
+    if(rm){ S.cal[rm.dataset.d].splice(+rm.dataset.j,1); lsSet("sf_cal_"+S.agent,S.cal); renderCal(); e.stopPropagation(); return; }
+    var add=e.target.closest('[data-cal="add"]'); if(!add) return;
+    var t=prompt("Slot konten (judul singkat):"); if(!t) return;
+    (S.cal[add.dataset.d]=S.cal[add.dataset.d]||[]).push(t); lsSet("sf_cal_"+S.agent,S.cal); renderCal(); log("calendar.add","hari "+add.dataset.d,t,"approved");
+  };
+  $("setSave").onclick=saveSettings;
+  $("genSend").onclick=function(){ var p=$("genIn").value.trim(); if(!p){ toast("Isi prompt.",null,true); return; }
+    $("genOut").innerHTML='<small style="color:var(--muted)">mengirim…</small>';
+    askEngine(p,function(ans){ $("genOut").innerHTML = ans? '<small style="white-space:pre-wrap">'+ans.replace(/</g,"&lt;")+'</small>' : '<small style="color:var(--review)">Engine/key tidak tersedia; tidak ada draft palsu. (mode lokal)</small>'; log("ask","@"+S.agent,p.slice(0,40),ans?"approved":"review"); });
+  };
+  document.addEventListener("keydown",function(e){
+    if(e.key==="/" && document.activeElement.tagName!=="INPUT" && document.activeElement.tagName!=="TEXTAREA"){ e.preventDefault(); $("search").focus(); }
+    if(e.key==="Escape"){ $("insp").classList.remove("open"); }
+  });
+  setInterval(function(){ $("stClock").textContent=new Date().toLocaleTimeString("id-ID",{hour12:false}); },1000);
+}
+bind(); probeServer();
+</script>
+</body>
+</html>
