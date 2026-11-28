@@ -4,47 +4,89 @@
 header{display:flex;gap:10px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--card)}header a{color:var(--t);text-decoration:none;font-size:12px}header h1{font-size:16px;margin:0}
 main{padding:16px 18px;max-width:1000px;margin:0 auto}.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}button{background:var(--card2);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer}button.primary{background:var(--t);color:#052422;border-color:var(--t);font-weight:600}button:disabled{opacity:.4;cursor:not-allowed}
-.chip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:10px;border:1px solid var(--mut);color:var(--mut);margin:2px}.chip.ok{color:var(--g);border-color:var(--g)}.chip.bad{color:var(--r);border-color:var(--r)}
-pre{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:11px;max-height:240px;overflow:auto;white-space:pre-wrap}.note{font-size:10px;color:var(--mut);line-height:1.5;margin-top:6px}
+.chip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:10px;border:1px solid var(--mut);color:var(--mut);margin:2px}.chip.ok{color:var(--g);border-color:var(--g)}
+pre{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:11px;max-height:260px;overflow:auto;white-space:pre-wrap}.note{font-size:10px;color:var(--mut);line-height:1.5;margin-top:6px}
 </style></head><body>
 <header><a href="/">&larr; Dashboard</a><h1>Concordium C1</h1><span class="note" id="hNet"></span></header>
 <main>
-<div class="card"><div class="row" id="chips"></div><div class="row"><button class="primary" id="bConnect">Connect</button><button id="bCard">Card</button><button id="bPrepare">Prepare</button><button class="primary" id="bSubmit" disabled>Submit</button><button id="bConfirm">Confirm</button></div><div class="note">User-owned: wallet tanda tangan, engine tanpa key. Testnet-only.</div></div>
+<div class="card"><div class="row" id="chips"></div><div class="row"><button class="primary" id="bConnect">Connect</button><button id="bCard">Card</button><button id="bPrepare">Prepare</button><button id="bSchema">Schema</button><button class="primary" id="bSubmit" disabled>Submit</button><button id="bConfirm">Confirm</button></div><div class="note">Type=AccountTransactionType.Update(2); payload instance SDK; schema=getEmbeddedModuleSchema. Wallet tanda tangan; engine tanpa key; testnet-only.</div></div>
 <div class="card"><b>Log</b><pre id="log"></pre></div>
 </main>
+<script src="/static/concordium-web-sdk.js"></script>
 <script>
+var SDK=window.concordiumSDK;
+var MODULE_REF="0e57473715d1c2a364fa626b8783688db32b7fac9d0e2fc97043da91e1a7d3eb";
 var RAW="https://raw.githubusercontent.com/Ringga999/local-stratofly/main/docs/agent-card.json";
-var S={account:null,genesis:null,card:null,hash:null,prep:null,token:null,tx:null};
+var S={account:null,genesis:null,grpc:null,card:null,hash:null,prep:null,schemaB64:null,schemaVer:null,payload:null,tx:null,token:null};
 function log(m){document.getElementById('log').textContent+=m+"\n";}
-function chips(){var c=[["session",S.account&&S.genesis],["card",S.card],["prepare",S.prep],["tx",S.tx],["registered",S.token]];
- document.getElementById('chips').innerHTML=c.map(function(x){var v=x[1];return '<span class="chip '+(v?'ok':'')+'">'+x[0]+': '+(v?'ok':'pending')+'</span>';}).join('');
- document.getElementById('bSubmit').disabled=!(S.prep&&S.account);}
+function b64(u8){var s="";for(var i=0;i<u8.length;i+=0x8000){s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));}return btoa(s);}
+function unwrapOpt(v){if(v&&typeof v==="object"){if("Some" in v){var a=v.Some;return Array.isArray(a)&&a.length===1?a[0]:(Array.isArray(a)?a:null);}if("None" in v){return null;}}return v;}
+function toSchemaJson(pj){if(!pj||typeof pj!=="object")return pj;var o={};for(var k in pj){o[k]=unwrapOpt(pj[k]);}return o;}
+function leb(u,i){var r=0,s=0;for(;;){var b=u[i++];r|=(b&0x7f)<<s;if(!(b&0x80))break;s+=7;}return [r,i];}
+function secVer(u8){try{var i=8;while(i<u8.length){var id=u8[i++];var a=leb(u8,i);i=a[1];var end=i+a[0];if(id===0){var n=leb(u8,i);var name=new TextDecoder().decode(u8.slice(n[1],n[1]+n[0]));if(name.indexOf("concordium-schema")===0){if(name.slice(-2)==="v3")return 3;if(name.slice(-2)==="v2")return 2;if(name.slice(-2)==="v1")return 1;return 0;}}i=end;}return 1;}catch(e){return 1;}}
+function chips(){var c=[["session",S.account&&S.genesis],["card",S.card],["prepare",S.prep],["schema",S.schemaB64],["tx",S.tx],["registered",S.token]];
+ document.getElementById('chips').innerHTML=c.map(function(x){return '<span class="chip '+(x[1]?'ok':'')+'">'+x[0]+': '+(x[1]?'ok':'pending')+'</span>';}).join('');
+ document.getElementById('bSubmit').disabled=!(S.prep&&S.schemaB64&&S.payload&&S.account);}
 function jp(u,b){return fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json();});}
 document.getElementById('bConnect').onclick=function(){
  if(!window.concordium){log("wallet not detected");return;}
- window.concordium.requestAccounts().then(function(a){S.account=Array.isArray(a)?a[0]:a;return window.concordium.getSelectedChain?window.concordium.getSelectedChain():Promise.resolve("testnet");})
- .then(function(g){S.genesis=g||"testnet";document.getElementById('hNet').textContent=S.genesis;return jp('/api/ccd/session',{account:S.account,genesis:S.genesis});})
+ window.concordium.requestAccounts().then(function(a){S.account=Array.isArray(a)?a[0]:a;S.grpc=window.concordium.getGrpcClient();return S.grpc.getCryptographicParameters();})
+ .then(function(p){S.genesis=p.genesisString;document.getElementById('hNet').textContent=S.genesis;return jp('/api/ccd/session',{account:S.account,genesis:S.genesis});})
  .then(function(r){log("session: "+JSON.stringify(r));chips();}).catch(function(e){log("connect err: "+(e.message||e));});};
 document.getElementById('bCard').onclick=function(){jp('/api/ccd/card',{agent_id:"stratofly-crew",owner:S.account||"",public_base_url:RAW}).then(function(r){if(r.ok){S.card=r.card;S.hash=r.hash;log("card hash "+S.hash);}else log("card err "+r.error);chips();});};
-document.getElementById('bPrepare').onclick=function(){if(!S.hash){log("card first");return;}jp('/api/ccd/prepare',{owner:S.account,agent_uri:RAW,metadata_hash_hex:S.hash.replace(/^0x/,"")}).then(function(r){if(r.ok){S.prep=r.data;log("prepared CIS-8004.register @12802,0");}else log("prepare err "+r.error);chips();});};
-document.getElementById('bSubmit').onclick=function(){
- if(!S.prep||!window.concordium){log("prepare/connect first");return;}
- var addr={index:12802,subindex:0};
- var tries=[
-  {type:"updateContract",payload:{amount:0,address:addr,receiveName:"CIS-8004.register",message:S.prep.parameter_hex},schema:"",schemaVer:0},
-  {type:"UpdateSmartContractInstance",payload:{amount:0,contractAddress:addr,receiveName:"CIS-8004.register",maxContractExecutionEnergy:30000},parameters:S.prep.parameter_json,schema:"",schemaVer:0},
-  {type:2,payload:{amount:0,address:addr,receiveName:"CIS-8004.register",message:S.prep.parameter_hex},schema:"",schemaVer:0}
- ];
- var i=0;
- function next(){
-  if(i>=tries.length){log("semua tipe reject; perlu dokumentasi wallet v2.12");return;}
-  var t=tries[i++]; log("coba tipe: "+JSON.stringify(t.type)+" ...");
-  window.concordium.sendTransaction(S.account,t.type,t.payload,t.parameters||"",t.schema||"",t.schemaVer||0)
-  .then(function(tx){S.tx=tx;log("TX(tipe "+JSON.stringify(t.type)+"): "+tx);chips();})
-  .catch(function(e){var m=(e&&e.message)||String(e);log("  reject: "+m);if(m.indexOf("does not have a handler")>=0){next();}else{log("  -> stop di tipe ini");}});
- }
- next();
+document.getElementById('bPrepare').onclick=function(){if(!S.hash){log("card first");return;}jp('/api/ccd/prepare',{owner:S.account,agent_uri:RAW,metadata_hash_hex:S.hash.replace(/^0x/,"")}).then(function(r){if(r.ok){S.prep=r.data;log("prepared CIS-8004.register @12802,0");buildPayload();}else log("prepare err "+r.error);chips();});};
+document.getElementById('bSchema').onclick=function(){
+ if(!S.grpc){log("connect first");return;}
+ try{
+  var fns=Object.getOwnPropertyNames(Object.getPrototypeOf(S.grpc)).filter(function(f){return /module/i.test(f);});
+  log("grpc module fns: "+(fns.join(",")||"(none)"));
+  if(typeof S.grpc.getModuleSource!=="function"){log("getModuleSource bukan function; lihat daftar di atas");return;}
+  var ref=null;
+  try{ ref=SDK.ModuleReference.fromHexString(MODULE_REF); }
+  catch(e){ log("ModuleReference err: "+((e&&e.message)||e)); return; }
+  log("ref ok: "+typeof ref);
+  var p=S.grpc.getModuleSource(ref);
+  Promise.resolve(p).then(async function(vms){
+   log("module source: version="+vms.version+" bytes="+(vms.source&&vms.source.length));
+   var mod=null;
+   try{ mod=await SDK.getEmbeddedModuleSchema(vms); }catch(e){ log("embeddedSchema err: "+((e&&e.message)||e)); }
+   if(!mod||!mod.buffer){log("module schema kosong; abort");return;}
+   log("module schema: type="+mod.type+" bufferLen="+mod.buffer.length);
+   var sv=(mod.type==="unversioned")?mod.version:secVer(vms.source);
+   var cn=(SDK.ContractName&&SDK.ContractName.fromString)?SDK.ContractName.fromString("CIS-8004"):"CIS-8004";
+   var en=(SDK.EntrypointName&&SDK.EntrypointName.fromString)?SDK.EntrypointName.fromString("register"):"register";
+   var ps=null;
+   try{ ps=SDK.getUpdateContractParameterSchema(mod.buffer,cn,en,(mod.type==="unversioned"?sv:undefined)); }catch(e){ log("paramSchema err: "+((e&&e.message)||e)); }
+   if(!ps||!ps.length){log("param schema kosong; abort");return;}
+   S.schemaB64=b64(new Uint8Array(mod.buffer));
+   S.paramJson=toSchemaJson(S.prep?S.prep.parameter_json:null);
+   log("paramJson schema-style: "+JSON.stringify(S.paramJson).slice(0,200));
+   var chosen=null;
+   if(typeof SDK.serializeUpdateContractParameters==="function"&&S.paramJson){
+     for(var v=0;v<=3;v++){ try{ SDK.serializeUpdateContractParameters(cn,en,S.paramJson,mod.buffer,v); chosen=v; break; }catch(e){} }
+   }
+   S.schemaVer=(chosen!==null)?chosen:((typeof sv==="number")?sv:1);
+   log("schema b64 len="+S.schemaB64.length+" ver="+S.schemaVer+(chosen!==null?" (dry-serialize OK)":" (fallback ver)"));chips();
+  }).catch(function(e){log("schema promise err: "+((e&&e.message)||e));});
+ }catch(e){ log("schema sync err: "+((e&&e.message)||e)); }
 };
+function buildPayload(){
+ try{
+  var amount=null,addr=null,rn=null;
+  try{amount=new SDK.CcdAmount(0n);}catch(e){amount=SDK.CcdAmount.fromCcd(0);}
+  try{addr=new SDK.ContractAddress(12802n,0n);}catch(e){addr=SDK.ContractAddress.create(12802n,0n);}
+  if(SDK.ReceiveName&&typeof SDK.ReceiveName.fromString==="function"){rn=SDK.ReceiveName.fromString("CIS-8004.register");}else{rn=new SDK.ReceiveName("CIS-8004.register");}
+  if(!amount||!addr||!rn){log("payload abort: constructor gagal");S.payload=null;chips();return;}
+  S.payload={amount:amount,contractAddress:addr,receiveName:rn,maxContractExecutionEnergy:30000n};
+  log("payload bertipe OK: "+["CcdAmount","ContractAddress","ReceiveName"].map(function(n){return n+":"+typeof S.payload[{CcdAmount:"amount",ContractAddress:"contractAddress",ReceiveName:"receiveName"}[n]];} ).join(" "));
+ }catch(e){log("payload err: "+(e.message||e));S.payload=null;}
+ chips();}
+document.getElementById('bSubmit').onclick=function(){
+ if(!(S.prep&&S.schemaB64&&S.payload&&S.account)){log("lengkapi prepare+schema+payload");return;}
+ log("submit: type=Update("+SDK.AccountTransactionType.Update+") ...");
+ window.concordium.sendTransaction(S.account,SDK.AccountTransactionType.Update,S.payload,(S.paramJson||S.prep.parameter_json),S.schemaB64,S.schemaVer)
+ .then(function(tx){S.tx=tx;log("TX: "+tx);chips();})
+ .catch(function(e){log("submit reject: "+((e&&e.message)||e));});};
 document.getElementById('bConfirm').onclick=function(){jp('/api/ccd/confirm',{owner:S.account||""}).then(function(r){if(r.ok&&r.new&&r.new.length){S.token=String(r.new[0].token_id);log("token_id: "+S.token);}else log("confirm: "+JSON.stringify(r).slice(0,300));chips();});};
-chips();log("C1 ready (rewrite bersih).");
+chips();log("C1-b wiring ready. SDK UMD: "+(SDK?"loaded":"MISSING")+" | type Update="+ (SDK&&SDK.AccountTransactionType?SDK.AccountTransactionType.Update:"?"));
 </script></body></html>

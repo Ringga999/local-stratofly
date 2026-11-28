@@ -28,8 +28,8 @@ Local copies of the adapted personas live in `agents/personas/`.
 ## @concordium/web-sdk (vendored)
 - Version: 12.0.3
 - File: lib/static/concordium-web-sdk.js
-- Bytes: 381833
-- SHA-256: ce49be2199b36e6334a5615fd6c598e69adfd404ce46c67b6d407e1bd3f194a5
-- Source: https://cdn.jsdelivr.net/npm/@concordium/web-sdk@12.0.3/+esm (unduh sekali; runtime tanpa CDN)
+- Bytes: 6168388
+- SHA-256: 0081313e39d6ef3f26956ec8bd92f723300d223c8bbac7cddf028960f7831954
+- Source: npm tarball @concordium/web-sdk@12.0.3 -> lib/min/concordium.web.min.js (UMD self-contained; global window.concordiumSDK; runtime tanpa CDN)
 - License: Apache-2.0 (Concordium)
 - Simbol terverifikasi: CcdAmount (bukan GtuAmount), AccountAddress, ContractAddress, ReceiveName, AccountTransaction, ModuleReference, getModuleSource, serializeAccountTransaction
